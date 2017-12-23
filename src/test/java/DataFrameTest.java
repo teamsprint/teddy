@@ -84,4 +84,18 @@ public class DataFrameTest {
     DataFrame newDf = df.drop(targetColNames);
     newDf.show();
   }
+
+  @Test
+  public void test_select() {
+    DataFrame df = new DataFrame();
+    df.setGrid(grid);
+    df.show();
+
+    List<String> targetColNames = new ArrayList<>();
+    targetColNames.add("column4");
+    targetColNames.add("column5");
+    DataFrame newDf = df.select(targetColNames);
+    newDf.show();
+  }
+
 }

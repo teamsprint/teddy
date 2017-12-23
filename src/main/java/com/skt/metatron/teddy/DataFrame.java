@@ -157,34 +157,49 @@ public class DataFrame implements Serializable {
     }
   }
 
+  public DataFrame select(List<String> targetColNames) {
+    return project(targetColNames, true);
+  }
+
+  public DataFrame drop(List<String> targetColNames) {
+    return project(targetColNames, false);
+  }
+
+  public DataFrame project(List<String> targetColNames, boolean select) {
+    List<Integer> selectedColNos = new ArrayList<>();
+    for (int i = 0; i < colCnt; i++) {
+      if (select) {
+        if (targetColNames.contains(colNames.get(i)) == true) {
+          selectedColNos.add(i);
+        }
+      } else {
+        if (targetColNames.contains(colNames.get(i)) == false) {
+          selectedColNos.add(i);
+        }
+      }
+    }
+
+    DataFrame df = new DataFrame();
+    df.colCnt = selectedColNos.size();
+    for (int colno : selectedColNos) {
+      df.colNames.add(this.colNames.get(colno));
+      df.colTypes.add(this.colTypes.get(colno));
+    }
+
+    for (List<Object> row : this.objGrid) {
+      List<Object> newRow = new ArrayList<>();
+      for (int colno : selectedColNos) {
+        newRow.add(row.get(colno));
+      }
+      df.objGrid.add(newRow);
+    }
+    return df;
+  }
+
   public DataFrame withColumnRenamed(String existingName, String newName) {
     DataFrame df = clone(this);
     df.renameInPlace(existingName, newName);
     return df;
   }
 
-  public DataFrame drop(List<String> targetColNames) {
-    List<Integer> leftColNos = new ArrayList<>();
-    for (int i = 0; i < colCnt; i++) {
-      if (targetColNames.contains(colNames.get(i)) == false) {
-        leftColNos.add(i);
-      }
-    }
-
-    DataFrame df = new DataFrame();
-    df.colCnt = leftColNos.size();
-    for (int left : leftColNos) {
-      df.colNames.add(this.colNames.get(left));
-      df.colTypes.add(this.colTypes.get(left));
-    }
-
-    for (List<Object> row : this.objGrid) {
-      List<Object> newRow = new ArrayList<>();
-      for (int left : leftColNos) {
-        newRow.add(row.get(left));
-      }
-      df.objGrid.add(newRow);
-    }
-    return df;
-  }
 }
