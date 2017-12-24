@@ -1,4 +1,7 @@
+import com.skt.metatron.discovery.common.preparation.RuleVisitorParser;
+import com.skt.metatron.discovery.common.preparation.rule.*;
 import com.skt.metatron.teddy.DataFrame;
+import com.skt.metatron.teddy.TeddyException;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -62,16 +65,6 @@ public class DataFrameTest {
   }
 
   @Test
-  public void test_rename() {
-    DataFrame df = new DataFrame();
-    df.setGrid(grid);
-    df.show();
-
-    DataFrame newDf = df.withColumnRenamed("column1", "newName");
-    newDf.show();
-  }
-
-  @Test
   public void test_drop() {
     DataFrame df = new DataFrame();
     df.setGrid(grid);
@@ -98,4 +91,115 @@ public class DataFrameTest {
     newDf.show();
   }
 
+  private DataFrame prepare_common(DataFrame df) throws IOException, TeddyException {
+    // rename column5 -> HP
+    Rule rule = new RuleVisitorParser().parse("rename col: column5 to: HP");
+    df = df.doRename((Rename)rule);
+
+    rule = new RuleVisitorParser().parse("settype col: HP type: long");
+    return df.doSetType((SetType)rule);
+  }
+
+  @Test
+  public void test_rename_settype() throws IOException, TeddyException {
+    DataFrame df = new DataFrame();
+    df.setGrid(grid);
+    df.show();
+    df = prepare_common(df);
+    df.show();
+  }
+
+  @Test
+  public void test_set_plus() throws IOException, TeddyException {
+    DataFrame df = new DataFrame();
+    df.setGrid(grid);
+    df.show();
+    df = prepare_common(df);
+
+    String ruleString = "set col: HP value: HP + 1000";
+    String jsonRuleString = df.parseRuleString(ruleString);
+    System.out.println(jsonRuleString);
+    Rule rule = new RuleVisitorParser().parse(ruleString);
+    DataFrame newDf = df.doSet((Set)rule);
+    newDf.show();
+  }
+
+  @Test
+  public void test_set_minus() throws IOException, TeddyException {
+    DataFrame df = new DataFrame();
+    df.setGrid(grid);
+    df.show();
+    df = prepare_common(df);
+
+    String ruleString = "set col: HP value: HP - 300";
+    String jsonRuleString = df.parseRuleString(ruleString);
+    System.out.println(jsonRuleString);
+    Rule rule = new RuleVisitorParser().parse(ruleString);
+    DataFrame newDf = df.doSet((Set)rule);
+    newDf.show();
+  }
+
+  @Test
+  public void test_set_mul() throws IOException, TeddyException {
+    DataFrame df = new DataFrame();
+    df.setGrid(grid);
+    df.show();
+    df = prepare_common(df);
+
+    String ruleString = "set col: HP value: HP * 10";
+    String jsonRuleString = df.parseRuleString(ruleString);
+    System.out.println(jsonRuleString);
+    Rule rule = new RuleVisitorParser().parse(ruleString);
+    DataFrame newDf = df.doSet((Set)rule);
+    newDf.show();
+  }
+
+  @Test
+  public void test_derive_mul() throws IOException, TeddyException {
+    DataFrame df = new DataFrame();
+    df.setGrid(grid);
+    df.show();
+    df = prepare_common(df);
+
+    String ruleString = "derive as: Turbo value: HP * 10";
+    String jsonRuleString = df.parseRuleString(ruleString);
+    System.out.println(jsonRuleString);
+    Rule rule = new RuleVisitorParser().parse(ruleString);
+    DataFrame newDf = df.doDerive((Derive)rule);
+    newDf.show();
+  }
+
+  @Test
+  public void test_set_div() throws IOException, TeddyException {
+    DataFrame df = new DataFrame();
+    df.setGrid(grid);
+    df.show();
+    df = prepare_common(df);
+
+    String ruleString = "set col: HP value: HP / 10";
+    String jsonRuleString = df.parseRuleString(ruleString);
+    System.out.println(jsonRuleString);
+    Rule rule = new RuleVisitorParser().parse(ruleString);
+    DataFrame newDf = df.doSet((Set)rule);
+    newDf.show();
+  }
+
+  @Test
+  public void test_set_type_mismatch() throws IOException, TeddyException {
+    DataFrame df = new DataFrame();
+    df.setGrid(grid);
+    df.show();
+    df = prepare_common(df);
+
+    String ruleString = "set col: HP value: HP * '10'";
+    String jsonRuleString = df.parseRuleString(ruleString);
+    System.out.println(jsonRuleString);
+    Rule rule = new RuleVisitorParser().parse(ruleString);
+
+    try {
+      df.doSet((Set) rule);
+    } catch (TeddyException e) {
+      System.out.println(e);
+    }
+  }
 }
