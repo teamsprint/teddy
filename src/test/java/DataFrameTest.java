@@ -24,11 +24,15 @@ public class DataFrameTest {
     return getResourcePath(relPath, false);
   }
 
-  static private List<String[]> grid;
+  static private List<String[]> gridSampleCsv;    // sample.csv (Ferrari, Jaruar, ...) (7 columns, 5 rows)
+  static private List<String[]> gridContractCsv;  // ibk_contract_n10000.csv
+  static private List<String[]> gridStoreCsv;     // ibk_store_n10000.csv
 
   @BeforeClass
   public static void setUp() throws Exception {
-    grid = new ArrayList<>();
+    gridSampleCsv = new ArrayList<>();
+    gridContractCsv = new ArrayList<>();
+    gridStoreCsv = new ArrayList<>();
 
     BufferedReader br = null;
     String line;
@@ -39,7 +43,21 @@ public class DataFrameTest {
       while ((line = br.readLine()) != null) {
         String[] strCols = line.split(cvsSplitBy);
         System.out.println(strCols);
-        grid.add(strCols);
+        gridSampleCsv.add(strCols);
+      }
+
+      br = new BufferedReader(new InputStreamReader(new FileInputStream(getResourcePath("data/ibk_contract_n10000.csv"))));
+      while ((line = br.readLine()) != null) {
+        String[] strCols = line.split(cvsSplitBy);
+        System.out.println(strCols);
+        gridContractCsv.add(strCols);
+      }
+
+      br = new BufferedReader(new InputStreamReader(new FileInputStream(getResourcePath("data/ibk_store_n10000.csv"))));
+      while ((line = br.readLine()) != null) {
+        String[] strCols = line.split(cvsSplitBy);
+        System.out.println(strCols);
+        gridStoreCsv.add(strCols);
       }
     } catch (FileNotFoundException e) {
       e.printStackTrace();
@@ -60,28 +78,41 @@ public class DataFrameTest {
   @Test
   public void test_show() {
     DataFrame df = new DataFrame();
-    df.setGrid(grid);
+    df.setGrid(gridSampleCsv);
+    df.show();
+
+    df = new DataFrame();
+    df.setGrid(gridContractCsv);
+    df.show();
+
+    df = new DataFrame();
+    df.setGrid(gridStoreCsv);
     df.show();
   }
 
   @Test
-  public void test_drop() {
+  public void test_drop() throws TeddyException {
     DataFrame df = new DataFrame();
-    df.setGrid(grid);
+    df.setGrid(gridSampleCsv);
     df.show();
 
-    List<String> targetColNames = new ArrayList<>();
-    targetColNames.add("column1");
-    targetColNames.add("column3");
-    targetColNames.add("column6");
-    DataFrame newDf = df.drop(targetColNames);
+//    List<String> targetColNames = new ArrayList<>();
+//    targetColNames.add("column1");
+//    targetColNames.add("column3");
+//    targetColNames.add("column6");
+//    DataFrame newDf = df.drop(targetColNames);
+//    newDf.show();
+
+    String ruleString = "drop col: column2, column3";
+    Rule rule = new RuleVisitorParser().parse(ruleString);
+    DataFrame newDf = df.doDrop((Drop)rule);
     newDf.show();
   }
 
   @Test
   public void test_select() {
     DataFrame df = new DataFrame();
-    df.setGrid(grid);
+    df.setGrid(gridSampleCsv);
     df.show();
 
     List<String> targetColNames = new ArrayList<>();
@@ -91,19 +122,52 @@ public class DataFrameTest {
     newDf.show();
   }
 
-  private DataFrame prepare_common(DataFrame df) throws IOException, TeddyException {
-    // rename column5 -> HP
-    Rule rule = new RuleVisitorParser().parse("rename col: column5 to: HP");
-    df = df.doRename((Rename)rule);
+  private DataFrame apply_rule(DataFrame df, List<String> ruleStrings) throws TeddyException {
+    for (String ruleString : ruleStrings) {
+      Rule rule = new RuleVisitorParser().parse(ruleString);
+      switch (rule.getName()) {
+        case "rename":
+          df = df.doRename((Rename)rule);
+          break;
+        case "drop":
+          df = df.doDrop((Drop)rule);
+          break;
+        case "set":
+          df = df.doRename((Rename)rule);
+          break;
+        case "derive":
+          df = df.doRename((Rename)rule);
+          break;
+        case "settype":
+          df = df.doRename((Rename)rule);
+          break;
+        case "header":
+          df = df.doHeader((Header)rule);
+          break;
+        default:
+          throw new TeddyException("rule not supported: " + rule.getName());
+      }
+    } // end of for
+    return df;
+  }
 
-    rule = new RuleVisitorParser().parse("settype col: HP type: long");
-    return df.doSetType((SetType)rule);
+  private DataFrame prepare_common(DataFrame df) throws IOException, TeddyException {
+    List<String> ruleStrings = new ArrayList<>();
+    ruleStrings.add("rename col: column5 to: HP");
+    ruleStrings.add("settype col: HP type: long");
+    return apply_rule(df, ruleStrings);
+//    // rename column5 -> HP
+//    Rule rule = new RuleVisitorParser().parse("rename col: column5 to: HP");
+//    df = df.doRename((Rename)rule);
+//
+//    rule = new RuleVisitorParser().parse("settype col: HP type: long");
+//    return df.doSetType((SetType)rule);
   }
 
   @Test
   public void test_rename_settype() throws IOException, TeddyException {
     DataFrame df = new DataFrame();
-    df.setGrid(grid);
+    df.setGrid(gridSampleCsv);
     df.show();
     df = prepare_common(df);
     df.show();
@@ -112,7 +176,7 @@ public class DataFrameTest {
   @Test
   public void test_set_plus() throws IOException, TeddyException {
     DataFrame df = new DataFrame();
-    df.setGrid(grid);
+    df.setGrid(gridSampleCsv);
     df.show();
     df = prepare_common(df);
 
@@ -127,7 +191,7 @@ public class DataFrameTest {
   @Test
   public void test_set_minus() throws IOException, TeddyException {
     DataFrame df = new DataFrame();
-    df.setGrid(grid);
+    df.setGrid(gridSampleCsv);
     df.show();
     df = prepare_common(df);
 
@@ -142,7 +206,7 @@ public class DataFrameTest {
   @Test
   public void test_set_mul() throws IOException, TeddyException {
     DataFrame df = new DataFrame();
-    df.setGrid(grid);
+    df.setGrid(gridSampleCsv);
     df.show();
     df = prepare_common(df);
 
@@ -157,7 +221,7 @@ public class DataFrameTest {
   @Test
   public void test_derive_mul() throws IOException, TeddyException {
     DataFrame df = new DataFrame();
-    df.setGrid(grid);
+    df.setGrid(gridSampleCsv);
     df.show();
     df = prepare_common(df);
 
@@ -172,7 +236,7 @@ public class DataFrameTest {
   @Test
   public void test_set_div() throws IOException, TeddyException {
     DataFrame df = new DataFrame();
-    df.setGrid(grid);
+    df.setGrid(gridSampleCsv);
     df.show();
     df = prepare_common(df);
 
@@ -187,7 +251,7 @@ public class DataFrameTest {
   @Test
   public void test_set_type_mismatch() throws IOException, TeddyException {
     DataFrame df = new DataFrame();
-    df.setGrid(grid);
+    df.setGrid(gridSampleCsv);
     df.show();
     df = prepare_common(df);
 
@@ -201,5 +265,42 @@ public class DataFrameTest {
     } catch (TeddyException e) {
       System.out.println(e);
     }
+  }
+
+  @Test
+  public void test_header() throws IOException, TeddyException {
+    List<String> ruleStrings = new ArrayList<>();
+
+    DataFrame store = new DataFrame();
+    store.setGrid(gridStoreCsv);
+    store.show();
+
+    ruleStrings.clear();
+    ruleStrings.add("header rownum: 1");
+    store = apply_rule(store, ruleStrings);
+    store.show();
+  }
+
+  @Test
+  public void test_join() throws IOException, TeddyException {
+    List<String> ruleStrings = new ArrayList<>();
+
+    DataFrame contract = new DataFrame();
+    contract.setGrid(gridContractCsv);
+    contract.show();
+
+    ruleStrings.add("drop col: column1");
+    ruleStrings.add("rename col: column7 to: uid");
+    contract = apply_rule(contract, ruleStrings);
+    contract.show();
+
+    DataFrame store = new DataFrame();
+    store.setGrid(gridStoreCsv);
+    store.show();
+
+    ruleStrings.clear();
+    ruleStrings.add("rename col: column3 to: uid");
+    store = apply_rule(store, ruleStrings);
+    store.show();
   }
 }

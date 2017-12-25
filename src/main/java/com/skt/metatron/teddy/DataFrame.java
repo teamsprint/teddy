@@ -21,15 +21,14 @@ public class DataFrame implements Serializable {
   private List<ExprType> colTypes;
   private List<Row> objGrid;
 
-  public DataFrame(List<String> colNames) {
-    this.colCnt = colNames.size();
-    this.colNames = colNames;
-    this.colTypes = new ArrayList<>();
-
-    for (int colno = 0; colno < colCnt; colno++) {
-      this.colTypes.add(ExprType.STRING);
-    }
-  }
+  // 처음 data를 가져오는 정보부터, 현재 dataframe에 이르기까지의 모든 정보
+  // 내 스스로는 필요없음. upstreamDataFrame의 내용이 필요할 때가 있음 (join, union, wrangled -> wrangled)
+  private List<DataFrame> upstreamDataFrame;
+  private String dsType;
+  private String importType;
+  private String filePath;
+  private String queryStmt;
+  private List<String> ruleStrings;
 
   public DataFrame() {
     colCnt = 0;
@@ -92,7 +91,7 @@ public class DataFrame implements Serializable {
     showColNames(widths);
     showColTypes(widths);
     showSep(widths);
-    for (int rowno = 0; rowno < objGrid.size(); rowno++) {
+    for (int rowno = 0; rowno < limit; rowno++) {
       showRow(widths, objGrid.get(rowno));
     }
     showSep(widths);
@@ -155,6 +154,27 @@ public class DataFrame implements Serializable {
 
   public DataFrame drop(List<String> targetColNames) {
     return project(targetColNames, false);
+  }
+
+  public DataFrame doDrop(Drop drop) throws TeddyException {
+    List<String> targetColNames = new ArrayList<>();
+
+    Expr expr = (Expr) drop.getCol();
+    if (expr instanceof Identifier.IdentifierExpr) {
+      targetColNames.add(((Identifier.IdentifierExpr) expr).getValue());
+    } else if (expr instanceof Identifier.IdentifierArrayExpr) {
+      targetColNames.addAll(((Identifier.IdentifierArrayExpr) expr).getValue());
+    } else {
+      assert false : expr;
+    }
+
+    for (String colName : targetColNames) {
+      if (!colNames.contains(colName)) {
+        throw new TeddyException("column not found: " + colName);
+      }
+    }
+
+    return drop(targetColNames);
   }
 
   public DataFrame project(List<String> targetColNames, boolean select) {
@@ -446,4 +466,41 @@ public class DataFrame implements Serializable {
 
     return doSetInternal(derive.getAs(), derive.getValue());
   }
+
+  public DataFrame doHeader(Header header) throws TeddyException {
+    DataFrame newDf = new DataFrame();
+    int targetRowno = header.getRownum().intValue() - 1;
+    if (targetRowno < 0) {
+      throw new TeddyException("doHeader(): rownum should be >= 1: rownum=" + (targetRowno + 1));
+    }
+
+    newDf.colCnt = colCnt;
+
+    Row targetRow = objGrid.get(targetRowno);
+    for (int colno = 0; colno < colCnt; colno++) {
+      newDf.colNames.add(colno, (String)targetRow.get(colno));
+      newDf.colTypes.add(colTypes.get(colno));
+    }
+
+    for (int rowno = 0; rowno < objGrid.size(); rowno++) {
+      if (rowno != targetRowno) {
+        Row row = objGrid.get(rowno);
+        Row newRow = new Row();
+        for (int colno = 0; colno < colCnt; colno++) {
+          newRow.add(newDf.colNames.get(colno), row.get(colno));
+        }
+        newDf.objGrid.add(newRow);
+      }
+    }
+
+    return newDf;
+  }
+
+//  public DataFrame doJoin(Join join) {
+//    Expression dataset2;
+//    Expression leftSelectCol;
+//    Expression rightSelectCol;
+//    Expression condition;
+//    String joinType;
+//  }
 }
