@@ -8,6 +8,7 @@ import org.junit.Test;
 import java.io.*;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 public class DataFrameTest {
@@ -133,13 +134,13 @@ public class DataFrameTest {
           df = df.doDrop((Drop)rule);
           break;
         case "set":
-          df = df.doRename((Rename)rule);
+          df = df.doSet((Set)rule);
           break;
         case "derive":
-          df = df.doRename((Rename)rule);
+          df = df.doDerive((Derive) rule);
           break;
         case "settype":
-          df = df.doRename((Rename)rule);
+          df = df.doSetType((SetType)rule);
           break;
         case "header":
           df = df.doHeader((Header)rule);
@@ -289,8 +290,21 @@ public class DataFrameTest {
     contract.setGrid(gridContractCsv);
     contract.show();
 
-    ruleStrings.add("drop col: column1");
-    ruleStrings.add("rename col: column7 to: uid");
+    ruleStrings.add("rename col: column1 to: cdate");
+    ruleStrings.add("drop col: column2, column9");
+    ruleStrings.add("rename col: column3 to: pcode1");
+    ruleStrings.add("rename col: column4 to: pcode2");
+    ruleStrings.add("rename col: column5 to: pcode3");
+    ruleStrings.add("rename col: column6 to: pcode4");
+    ruleStrings.add("rename col: column7 to: customer_id");
+    ruleStrings.add("rename col: column8 to: detail_store_code");
+
+    ruleStrings.add("settype col: pcode1 type: long");
+    ruleStrings.add("settype col: pcode2 type: long");
+    ruleStrings.add("settype col: pcode3 type: long");
+    ruleStrings.add("settype col: pcode4 type: long");
+    ruleStrings.add("settype col: detail_store_code type: long");
+
     contract = apply_rule(contract, ruleStrings);
     contract.show();
 
@@ -299,8 +313,15 @@ public class DataFrameTest {
     store.show();
 
     ruleStrings.clear();
-    ruleStrings.add("rename col: column3 to: uid");
+    ruleStrings.add("header rownum: 1");
+    ruleStrings.add("drop col: store_code, store_name");
+    ruleStrings.add("settype col: detail_store_code type: long");
     store = apply_rule(store, ruleStrings);
     store.show();
+
+    List<String> leftSelectColNames = Arrays.asList(new String[]{"cdate", "pcode1", "pcode2", "pcode3", "pcode4", "customer_id", "detail_store_code"});
+    List<String> rightSelectColNames = Arrays.asList(new String[]{"detail_store_code", "customer_id", "detail_store_name"});
+    DataFrame newDf = contract.join(store, leftSelectColNames, rightSelectColNames, "customer_id = customer_id", "inner");
+    newDf.show();
   }
 }
