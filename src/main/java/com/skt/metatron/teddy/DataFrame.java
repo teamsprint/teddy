@@ -575,4 +575,25 @@ public class DataFrame implements Serializable {
     }
     return newDf;
   }
+
+  public DataFrame union(List<DataFrame> slaveDataFrames, int limitRowCnt) throws TeddyException {
+    DataFrame newDf = new DataFrame();
+
+    newDf.colCnt = colCnt;
+    newDf.colNames.addAll(colNames);
+    newDf.colTypes.addAll(colTypes);
+
+    // master도 추가
+    slaveDataFrames.add(0, this);
+    for (DataFrame df : slaveDataFrames) {
+      for (Row row : df.objGrid) {
+        if (newDf.objGrid.size() >= limitRowCnt) {
+          return newDf;
+        }
+
+        newDf.objGrid.add(row);
+      }
+    }
+    return newDf;
+  }
 }

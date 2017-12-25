@@ -28,12 +28,22 @@ public class DataFrameTest {
   static private List<String[]> gridSampleCsv;    // sample.csv (Ferrari, Jaruar, ...) (7 columns, 5 rows)
   static private List<String[]> gridContractCsv;  // ibk_contract_n10000.csv
   static private List<String[]> gridStoreCsv;     // ibk_store_n10000.csv
+  static private List<String[]> gridStoreCsv1;    // ibk_store_n3000_1.csv
+  static private List<String[]> gridStoreCsv2;    // ibk_store_n3000_2.csv
+  static private List<String[]> gridStoreCsv3;    // ibk_store_n3000_3.csv
+  static private List<String[]> gridStoreCsv4;    // ibk_store_n3000_4.csv
 
   @BeforeClass
   public static void setUp() throws Exception {
     gridSampleCsv = new ArrayList<>();
     gridContractCsv = new ArrayList<>();
     gridStoreCsv = new ArrayList<>();
+    gridStoreCsv1 = new ArrayList<>();
+    gridStoreCsv2 = new ArrayList<>();
+    gridStoreCsv3 = new ArrayList<>();
+    gridStoreCsv4 = new ArrayList<>();
+
+    int limitRowCnt = 10000;
 
     BufferedReader br = null;
     String line;
@@ -43,22 +53,57 @@ public class DataFrameTest {
       br = new BufferedReader(new InputStreamReader(new FileInputStream(getResourcePath("metatron_dataset/small/sample.csv"))));
       while ((line = br.readLine()) != null) {
         String[] strCols = line.split(cvsSplitBy);
-        System.out.println(strCols);
         gridSampleCsv.add(strCols);
+        if (gridSampleCsv.size() == limitRowCnt)
+          break;
       }
 
       br = new BufferedReader(new InputStreamReader(new FileInputStream(getResourcePath("data/ibk_contract_n10000.csv"))));
       while ((line = br.readLine()) != null) {
         String[] strCols = line.split(cvsSplitBy);
-        System.out.println(strCols);
         gridContractCsv.add(strCols);
+        if (gridContractCsv.size() == limitRowCnt)
+          break;
       }
 
       br = new BufferedReader(new InputStreamReader(new FileInputStream(getResourcePath("data/ibk_store_n10000.csv"))));
       while ((line = br.readLine()) != null) {
         String[] strCols = line.split(cvsSplitBy);
-        System.out.println(strCols);
         gridStoreCsv.add(strCols);
+        if (gridStoreCsv.size() == limitRowCnt)
+          break;
+      }
+
+      br = new BufferedReader(new InputStreamReader(new FileInputStream(getResourcePath("data/ibk_store_n3000_1.csv"))));
+      while ((line = br.readLine()) != null) {
+        String[] strCols = line.split(cvsSplitBy);
+        gridStoreCsv1.add(strCols);
+        if (gridStoreCsv1.size() == limitRowCnt)
+          break;
+      }
+
+      br = new BufferedReader(new InputStreamReader(new FileInputStream(getResourcePath("data/ibk_store_n3000_2.csv"))));
+      while ((line = br.readLine()) != null) {
+        String[] strCols = line.split(cvsSplitBy);
+        gridStoreCsv2.add(strCols);
+        if (gridStoreCsv2.size() == limitRowCnt)
+          break;
+      }
+
+      br = new BufferedReader(new InputStreamReader(new FileInputStream(getResourcePath("data/ibk_store_n3000_3.csv"))));
+      while ((line = br.readLine()) != null) {
+        String[] strCols = line.split(cvsSplitBy);
+        gridStoreCsv3.add(strCols);
+        if (gridStoreCsv3.size() == limitRowCnt)
+          break;
+      }
+
+      br = new BufferedReader(new InputStreamReader(new FileInputStream(getResourcePath("data/ibk_store_n3000_4.csv"))));
+      while ((line = br.readLine()) != null) {
+        String[] strCols = line.split(cvsSplitBy);
+        gridStoreCsv4.add(strCols);
+        if (gridStoreCsv4.size() == limitRowCnt)
+          break;
       }
     } catch (FileNotFoundException e) {
       e.printStackTrace();
@@ -365,6 +410,40 @@ public class DataFrameTest {
     List<String> leftSelectColNames = Arrays.asList(new String[]{"cdate", "pcode1", "pcode2", "pcode3", "pcode4", "customer_id", "detail_store_code"});
     List<String> rightSelectColNames = Arrays.asList(new String[]{"detail_store_code", "customer_id", "detail_store_name"});
     DataFrame newDf = contract.join(store, leftSelectColNames, rightSelectColNames, "detail_store_code = detail_store_code", "inner", 10000);
+    newDf.show();
+  }
+
+  @Test
+  public void test_union() throws IOException, TeddyException {
+    List<String> ruleStrings = new ArrayList<>();
+
+    DataFrame store1 = new DataFrame();
+    store1.setGrid(gridStoreCsv1);
+    DataFrame store2 = new DataFrame();
+    store2.setGrid(gridStoreCsv2);
+    DataFrame store3 = new DataFrame();
+    store3.setGrid(gridStoreCsv3);
+    DataFrame store4 = new DataFrame();
+    store4.setGrid(gridStoreCsv4);
+
+    store1.show();
+
+    ruleStrings.add("header rownum: 1");
+    ruleStrings.add("drop col: store_code, store_name");
+    ruleStrings.add("settype col: detail_store_code type: long");
+
+    store1 = apply_rule(store1, ruleStrings);
+    store2 = apply_rule(store2, ruleStrings);
+    store3 = apply_rule(store3, ruleStrings);
+    store4 = apply_rule(store4, ruleStrings);
+
+    store1.show();
+
+    List<DataFrame> slaveDataFrames = new ArrayList<>();
+    slaveDataFrames.add(store2);
+    slaveDataFrames.add(store3);
+    slaveDataFrames.add(store4);
+   DataFrame newDf = store1.union(slaveDataFrames, 10000);
     newDf.show();
   }
 }
