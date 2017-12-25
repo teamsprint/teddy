@@ -508,7 +508,7 @@ public class DataFrame implements Serializable {
   }
 
   public DataFrame join(DataFrame rightDataFrame, List<String> leftSelectColNames, List<String> rightSelectColNames,
-                        String condition, String joinType) throws TeddyException {
+                        String condition, String joinType, int limitRowCnt) throws TeddyException {
     String fakeRuleString = "keep row: " + condition;
     Rule rule = new RuleVisitorParser().parse(fakeRuleString);
     Expr.BinAsExpr predicate = (Expr.BinAsExpr)((Keep)rule).getRow();
@@ -567,6 +567,9 @@ public class DataFrame implements Serializable {
             if (left.eval(lrow).asString().equals(right.eval(rrow).asString())) {
               newDf.addJoinedRow(lrow, leftSelectColNames, rrow, rightSelectColNames);
             }
+        }
+        if (newDf.objGrid.size() == limitRowCnt) {
+          return newDf;
         }
       } // end of each rrow
     }

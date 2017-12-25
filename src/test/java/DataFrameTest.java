@@ -283,7 +283,7 @@ public class DataFrameTest {
   }
 
   @Test
-  public void test_join() throws IOException, TeddyException {
+  public void test_join_by_string() throws IOException, TeddyException {
     List<String> ruleStrings = new ArrayList<>();
 
     DataFrame contract = new DataFrame();
@@ -321,7 +321,50 @@ public class DataFrameTest {
 
     List<String> leftSelectColNames = Arrays.asList(new String[]{"cdate", "pcode1", "pcode2", "pcode3", "pcode4", "customer_id", "detail_store_code"});
     List<String> rightSelectColNames = Arrays.asList(new String[]{"detail_store_code", "customer_id", "detail_store_name"});
-    DataFrame newDf = contract.join(store, leftSelectColNames, rightSelectColNames, "customer_id = customer_id", "inner");
+    DataFrame newDf = contract.join(store, leftSelectColNames, rightSelectColNames, "customer_id = customer_id", "inner", 10000);
+    newDf.show();
+  }
+
+  @Test
+  public void test_join_by_long() throws IOException, TeddyException {
+    List<String> ruleStrings = new ArrayList<>();
+
+    DataFrame contract = new DataFrame();
+    contract.setGrid(gridContractCsv);
+    contract.show();
+
+    ruleStrings.add("rename col: column1 to: cdate");
+    ruleStrings.add("drop col: column2, column9");
+    ruleStrings.add("rename col: column3 to: pcode1");
+    ruleStrings.add("rename col: column4 to: pcode2");
+    ruleStrings.add("rename col: column5 to: pcode3");
+    ruleStrings.add("rename col: column6 to: pcode4");
+    ruleStrings.add("rename col: column7 to: customer_id");
+    ruleStrings.add("rename col: column8 to: detail_store_code");
+
+    ruleStrings.add("settype col: pcode1 type: long");
+    ruleStrings.add("settype col: pcode2 type: long");
+    ruleStrings.add("settype col: pcode3 type: long");
+    ruleStrings.add("settype col: pcode4 type: long");
+    ruleStrings.add("settype col: detail_store_code type: long");
+
+    contract = apply_rule(contract, ruleStrings);
+    contract.show();
+
+    DataFrame store = new DataFrame();
+    store.setGrid(gridStoreCsv);
+    store.show();
+
+    ruleStrings.clear();
+    ruleStrings.add("header rownum: 1");
+    ruleStrings.add("drop col: store_code, store_name");
+    ruleStrings.add("settype col: detail_store_code type: long");
+    store = apply_rule(store, ruleStrings);
+    store.show();
+
+    List<String> leftSelectColNames = Arrays.asList(new String[]{"cdate", "pcode1", "pcode2", "pcode3", "pcode4", "customer_id", "detail_store_code"});
+    List<String> rightSelectColNames = Arrays.asList(new String[]{"detail_store_code", "customer_id", "detail_store_name"});
+    DataFrame newDf = contract.join(store, leftSelectColNames, rightSelectColNames, "detail_store_code = detail_store_code", "inner", 10000);
     newDf.show();
   }
 }
