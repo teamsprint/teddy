@@ -88,33 +88,28 @@ public class DataFrameTest {
   }
 
   @Test
-  public void test_drop() throws TeddyException {
+  public void test_drop() throws TeddyException, IOException {
     DataFrame df = new DataFrame();
     df.setGrid(grids.get("sample"));
+    df = prepare_common(df);
     df.show();
 
-//    List<String> targetColNames = new ArrayList<>();
-//    targetColNames.add("column1");
-//    targetColNames.add("column3");
-//    targetColNames.add("column6");
-//    DataFrame newDf = df.drop(targetColNames);
-//    newDf.show();
-
-    String ruleString = "drop col: column2, column3";
+    String ruleString = "drop col: recent, itemNo";
     Rule rule = new RuleVisitorParser().parse(ruleString);
     DataFrame newDf = df.doDrop((Drop)rule);
     newDf.show();
   }
 
   @Test
-  public void test_select() {
+  public void test_select() throws IOException, TeddyException {
     DataFrame df = new DataFrame();
     df.setGrid(grids.get("sample"));
+    df = prepare_common(df);
     df.show();
 
     List<String> targetColNames = new ArrayList<>();
-    targetColNames.add("column4");
-    targetColNames.add("column5");
+    targetColNames.add("name");
+    targetColNames.add("HP");
     DataFrame newDf = df.select(targetColNames);
     newDf.show();
   }
@@ -150,22 +145,26 @@ public class DataFrameTest {
 
   private DataFrame prepare_common(DataFrame df) throws IOException, TeddyException {
     List<String> ruleStrings = new ArrayList<>();
+
+    ruleStrings.add("rename col: column1 to: launch");
+    ruleStrings.add("rename col: column2 to: recent");
+    ruleStrings.add("rename col: column3 to: itemNo");
+    ruleStrings.add("rename col: column4 to: name");
     ruleStrings.add("rename col: column5 to: HP");
+    ruleStrings.add("rename col: column6 to: price");
+    ruleStrings.add("rename col: column7 to: rank");
+    ruleStrings.add("settype col: itemNo type: long");
     ruleStrings.add("settype col: HP type: long");
+    ruleStrings.add("settype col: price type: double");
+    ruleStrings.add("settype col: rank type: long");
+
     return apply_rule(df, ruleStrings);
-//    // rename column5 -> HP
-//    Rule rule = new RuleVisitorParser().parse("rename col: column5 to: HP");
-//    df = df.doRename((Rename)rule);
-//
-//    rule = new RuleVisitorParser().parse("settype col: HP type: long");
-//    return df.doSetType((SetType)rule);
   }
 
   @Test
   public void test_rename_settype() throws IOException, TeddyException {
     DataFrame df = new DataFrame();
     df.setGrid(grids.get("sample"));
-    df.show();
     df = prepare_common(df);
     df.show();
   }
@@ -174,8 +173,8 @@ public class DataFrameTest {
   public void test_set_plus() throws IOException, TeddyException {
     DataFrame df = new DataFrame();
     df.setGrid(grids.get("sample"));
-    df.show();
     df = prepare_common(df);
+    df.show();
 
     String ruleString = "set col: HP value: HP + 1000";
     String jsonRuleString = df.parseRuleString(ruleString);
@@ -189,8 +188,8 @@ public class DataFrameTest {
   public void test_set_minus() throws IOException, TeddyException {
     DataFrame df = new DataFrame();
     df.setGrid(grids.get("sample"));
-    df.show();
     df = prepare_common(df);
+    df.show();
 
     String ruleString = "set col: HP value: HP - 300";
     String jsonRuleString = df.parseRuleString(ruleString);
@@ -219,8 +218,8 @@ public class DataFrameTest {
   public void test_derive_mul() throws IOException, TeddyException {
     DataFrame df = new DataFrame();
     df.setGrid(grids.get("sample"));
-    df.show();
     df = prepare_common(df);
+    df.show();
 
     String ruleString = "derive as: Turbo value: HP * 10";
     String jsonRuleString = df.parseRuleString(ruleString);
@@ -234,8 +233,8 @@ public class DataFrameTest {
   public void test_set_div() throws IOException, TeddyException {
     DataFrame df = new DataFrame();
     df.setGrid(grids.get("sample"));
-    df.show();
     df = prepare_common(df);
+    df.show();
 
     String ruleString = "set col: HP value: HP / 10";
     String jsonRuleString = df.parseRuleString(ruleString);
@@ -249,8 +248,8 @@ public class DataFrameTest {
   public void test_set_type_mismatch() throws IOException, TeddyException {
     DataFrame df = new DataFrame();
     df.setGrid(grids.get("sample"));
-    df.show();
     df = prepare_common(df);
+    df.show();
 
     String ruleString = "set col: HP value: HP * '10'";
     String jsonRuleString = df.parseRuleString(ruleString);
@@ -396,6 +395,21 @@ public class DataFrameTest {
     slaveDataFrames.add(store3);
     slaveDataFrames.add(store4);
    DataFrame newDf = store1.union(slaveDataFrames, 10000);
+    newDf.show();
+  }
+
+  @Test
+  public void test_extract() throws IOException, TeddyException {
+    DataFrame df = new DataFrame();
+    df.setGrid(grids.get("sample"));
+    df = prepare_common(df);
+    df.show();
+
+    String ruleString = "set col: HP value: HP / 10";
+    String jsonRuleString = df.parseRuleString(ruleString);
+    System.out.println(jsonRuleString);
+    Rule rule = new RuleVisitorParser().parse(ruleString);
+    DataFrame newDf = df.doSet((Set)rule);
     newDf.show();
   }
 }
