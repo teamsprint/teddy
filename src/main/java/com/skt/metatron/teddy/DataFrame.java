@@ -336,19 +336,6 @@ public class DataFrame implements Serializable {
     // Binary Operation
     else if (expr instanceof Expr.BinaryNumericOpExprBase) {
       ExprEval result = ((Expr.BinaryNumericOpExprBase) expr).eval(objGrid.get(rowno));
-//      ExprEval left = ((Expr.BinaryNumericOpExprBase) expr).getLeft().eval(objGrid.get(rowno));
-//      ExprEval right = ((Expr.BinaryNumericOpExprBase) expr).getRight().eval(null);
-//      if (left.rhs == right.rhs) {
-//        if (left.rhs == ExprType.LONG) {
-//          resultObj = ((Expr.BinaryNumericOpExprBase) expr)
-//        } else if (left.rhs == ExprType.DOUBLE) {
-//          resultObj = ((Expr.BinaryNumericOpExprBase) expr).getOp().eval(null);
-//        }
-//      } else {
-//        String msg = String.format("eval(): type mismatch: left=%s right=%s expr=%s", left.rhs, right.rhs, expr);
-//        throw new TeddyException(msg);  // FIXME: expr이 %s로 찍히는지 체크
-//      }
-
       resultObj = result.value();
     }
     System.out.println(String.format("eval(): resultType=%s resultObj=%s expr=%s", resultType, resultObj.toString(), expr));
