@@ -277,14 +277,8 @@ public class DataFrameTest {
     store.show();
   }
 
-  @Test
-  public void test_join_by_string() throws IOException, TeddyException {
+  private DataFrame prepare_contract(DataFrame contract) throws TeddyException {
     List<String> ruleStrings = new ArrayList<>();
-
-    DataFrame contract = new DataFrame();
-    contract.setGrid(grids.get("contract"));
-    contract.show();
-
     ruleStrings.add("rename col: column1 to: cdate");
     ruleStrings.add("drop col: column2, column9");
     ruleStrings.add("rename col: column3 to: pcode1");
@@ -300,18 +294,31 @@ public class DataFrameTest {
     ruleStrings.add("settype col: pcode4 type: long");
     ruleStrings.add("settype col: detail_store_code type: long");
 
-    contract = apply_rule(contract, ruleStrings);
+    return apply_rule(contract, ruleStrings);
+  }
+
+  private DataFrame prepare_store(DataFrame store) throws TeddyException {
+    List<String> ruleStrings = new ArrayList<>();
+    ruleStrings.add("header rownum: 1");
+    ruleStrings.add("drop col: store_code, store_name");
+    ruleStrings.add("settype col: detail_store_code type: long");
+    return apply_rule(store, ruleStrings);
+  }
+
+  @Test
+  public void test_join_by_string() throws IOException, TeddyException {
+    DataFrame contract = new DataFrame();
+    contract.setGrid(grids.get("contract"));
+    contract.show();
+
+    contract = prepare_contract(contract);
     contract.show();
 
     DataFrame store = new DataFrame();
     store.setGrid(grids.get("store"));
     store.show();
 
-    ruleStrings.clear();
-    ruleStrings.add("header rownum: 1");
-    ruleStrings.add("drop col: store_code, store_name");
-    ruleStrings.add("settype col: detail_store_code type: long");
-    store = apply_rule(store, ruleStrings);
+    store = prepare_store(store);
     store.show();
 
     List<String> leftSelectColNames = Arrays.asList(new String[]{"cdate", "pcode1", "pcode2", "pcode3", "pcode4", "customer_id", "detail_store_code"});
@@ -322,39 +329,18 @@ public class DataFrameTest {
 
   @Test
   public void test_join_by_long() throws IOException, TeddyException {
-    List<String> ruleStrings = new ArrayList<>();
-
     DataFrame contract = new DataFrame();
     contract.setGrid(grids.get("contract"));
     contract.show();
 
-    ruleStrings.add("rename col: column1 to: cdate");
-    ruleStrings.add("drop col: column2, column9");
-    ruleStrings.add("rename col: column3 to: pcode1");
-    ruleStrings.add("rename col: column4 to: pcode2");
-    ruleStrings.add("rename col: column5 to: pcode3");
-    ruleStrings.add("rename col: column6 to: pcode4");
-    ruleStrings.add("rename col: column7 to: customer_id");
-    ruleStrings.add("rename col: column8 to: detail_store_code");
-
-    ruleStrings.add("settype col: pcode1 type: long");
-    ruleStrings.add("settype col: pcode2 type: long");
-    ruleStrings.add("settype col: pcode3 type: long");
-    ruleStrings.add("settype col: pcode4 type: long");
-    ruleStrings.add("settype col: detail_store_code type: long");
-
-    contract = apply_rule(contract, ruleStrings);
+    contract = prepare_contract(contract);
     contract.show();
 
     DataFrame store = new DataFrame();
     store.setGrid(grids.get("store"));
     store.show();
 
-    ruleStrings.clear();
-    ruleStrings.add("header rownum: 1");
-    ruleStrings.add("drop col: store_code, store_name");
-    ruleStrings.add("settype col: detail_store_code type: long");
-    store = apply_rule(store, ruleStrings);
+    store = prepare_store(store);
     store.show();
 
     List<String> leftSelectColNames = Arrays.asList(new String[]{"cdate", "pcode1", "pcode2", "pcode3", "pcode4", "customer_id", "detail_store_code"});
@@ -365,8 +351,6 @@ public class DataFrameTest {
 
   @Test
   public void test_union() throws IOException, TeddyException {
-    List<String> ruleStrings = new ArrayList<>();
-
     DataFrame store1 = new DataFrame();
     DataFrame store2 = new DataFrame();
     DataFrame store3 = new DataFrame();
@@ -379,14 +363,10 @@ public class DataFrameTest {
 
     store1.show();
 
-    ruleStrings.add("header rownum: 1");
-    ruleStrings.add("drop col: store_code, store_name");
-    ruleStrings.add("settype col: detail_store_code type: long");
-
-    store1 = apply_rule(store1, ruleStrings);
-    store2 = apply_rule(store2, ruleStrings);
-    store3 = apply_rule(store3, ruleStrings);
-    store4 = apply_rule(store4, ruleStrings);
+    store1 = prepare_store(store1);
+    store2 = prepare_store(store2);
+    store3 = prepare_store(store3);
+    store4 = prepare_store(store4);
 
     store1.show();
 
@@ -394,7 +374,7 @@ public class DataFrameTest {
     slaveDataFrames.add(store2);
     slaveDataFrames.add(store3);
     slaveDataFrames.add(store4);
-   DataFrame newDf = store1.union(slaveDataFrames, 10000);
+    DataFrame newDf = store1.union(slaveDataFrames, 10000);
     newDf.show();
   }
 
@@ -405,11 +385,22 @@ public class DataFrameTest {
     df = prepare_common(df);
     df.show();
 
-    String ruleString = "set col: HP value: HP / 10";
-    String jsonRuleString = df.parseRuleString(ruleString);
-    System.out.println(jsonRuleString);
+    String ruleString = "extract col: name on: 'e' quote: '\"' limit: 3";
     Rule rule = new RuleVisitorParser().parse(ruleString);
-    DataFrame newDf = df.doSet((Set)rule);
+    DataFrame newDf = df.doExtract((Extract)rule);
+    newDf.show();
+  }
+
+  @Test
+  public void test_extract_regex() throws IOException, TeddyException {
+    DataFrame contract = new DataFrame();
+    contract.setGrid(grids.get("contract"));
+    contract = prepare_contract(contract);
+    contract.show(100);
+
+    String ruleString = "extract col: cdate on: /\\w+/ quote: '\"' limit: 3";
+    Rule rule = new RuleVisitorParser().parse(ruleString);
+    DataFrame newDf = contract.doExtract((Extract)rule);
     newDf.show();
   }
 }

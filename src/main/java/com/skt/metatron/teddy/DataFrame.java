@@ -12,6 +12,8 @@ import java.io.IOException;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class DataFrame implements Serializable {
   private static Logger LOGGER = LoggerFactory.getLogger(DataFrame.class);
@@ -170,7 +172,7 @@ public class DataFrame implements Serializable {
 
     for (String colName : targetColNames) {
       if (!colNames.contains(colName)) {
-        throw new TeddyException("column not found: " + colName);
+        throw new TeddyException("doDrop(): column not found: " + colName);
       }
     }
 
@@ -293,7 +295,7 @@ public class DataFrame implements Serializable {
         return left;
       }
       String msg = String.format("decideType(): type mismatch: left=%s right=%s expr=%s", left, right, expr);
-      throw new TeddyException(msg);  // FIXME: expr이 %s로 찍히는지 체크
+      throw new TeddyException(msg);
     }
     System.out.println(String.format("decideType(): resultType=%s expr=%s", resultType, expr));
     return resultType;
@@ -316,7 +318,7 @@ public class DataFrame implements Serializable {
         }
       }
       if (colno == colCnt) {
-        throw new TeddyException("column not found: " + colName);
+        throw new TeddyException("eval(): column not found: " + colName);
       }
     }
     // Constant
@@ -387,6 +389,9 @@ public class DataFrame implements Serializable {
         newDf.colTypes.add(colTypes.get(colno));
       }
     }
+    if (targetColNo == -1) {
+      throw new TeddyException("doSetType(): column not found");
+    }
 
     for (int rowno = 0; rowno < objGrid.size(); rowno++) {
       Row row = objGrid.get(rowno);
@@ -447,7 +452,7 @@ public class DataFrame implements Serializable {
     // 기존 column 이름과 겹치면 안됨.
     for (int colno = 0; colno < colCnt; colno++) {
       if (colNames.get(colno).equalsIgnoreCase(targetColName)) {
-        throw new TeddyException("doDerive(): colname not exists: " + targetColName);
+        throw new TeddyException("doDerive(): colname exists: " + targetColName);
       }
     }
 
@@ -500,7 +505,7 @@ public class DataFrame implements Serializable {
     Rule rule = new RuleVisitorParser().parse(fakeRuleString);
     Expr.BinAsExpr predicate = (Expr.BinAsExpr)((Keep)rule).getRow();
     if (!predicate.getOp().equals("=")) {
-      throw new TeddyException("join type not suppoerted: op: " + predicate.getOp());
+      throw new TeddyException("join(): join type not suppoerted: op: " + predicate.getOp());
     }
     Expr.BinEqExpr eqExpr = new Expr.BinEqExpr(predicate.getOp(), predicate.getLeft(), predicate.getRight());
     boolean typeChecked = false;
@@ -533,7 +538,7 @@ public class DataFrame implements Serializable {
         if (!typeChecked) {
           ExprType rtype = right.eval(rrow).type();
           if (ltype != rtype) {
-            throw new TeddyException(String.format("predicate type mismatch: left=%s right%s", ltype.toString(), rtype.toString()));
+            throw new TeddyException(String.format("join(): predicate type mismatch: left=%s right%s", ltype.toString(), rtype.toString()));
           }
           typeChecked = true;
         }
@@ -581,6 +586,78 @@ public class DataFrame implements Serializable {
         newDf.objGrid.add(row);
       }
     }
+    return newDf;
+  }
+
+  public DataFrame doExtract(Extract extract) throws TeddyException {
+    String targetColName = extract.getCol();
+    int targetColno = -1;
+    Expression expr = extract.getOn();
+    Expression quote = extract.getQuote();
+    int limit = extract.getLimit();
+    int rowno, colno;
+
+    if (!colNames.contains(targetColName)) {
+      throw new TeddyException("doExtract(): column not found: " + targetColName);
+    } else if (limit <= 0) {
+      throw new TeddyException("doExtract(): limit should be >= 0: " + limit);
+    } else {
+      for (colno = 0; colno < colCnt; colno++) {
+        if (colNames.get(colno).equals(targetColName)) {
+          if (colTypes.get(colno) != ExprType.STRING) {
+            throw new TeddyException("doExtract(): works only on STRING: " + colTypes.get(colno));
+          }
+          targetColno = colno;
+        }
+      }
+    }
+
+    DataFrame newDf = new DataFrame();
+    newDf.colCnt = colCnt;
+    newDf.colNames.addAll(colNames);
+    newDf.colTypes.addAll(colTypes);
+
+    List<String> newColNames = new ArrayList<>();
+    for (int i = 0; i < limit; i++) {
+      String newColName = "extract_" + (i + 1);
+      while (newDf.colNames.contains(newColName)) {
+        newColName += "_1";
+      }
+      newColNames.add(newColName);  // for newRow add
+      newDf.colNames.add(newColName);
+      newDf.colTypes.add(ExprType.STRING);
+      newDf.colCnt++;
+    }
+
+    String patternStr;
+    if (expr instanceof Constant.StringExpr) {
+      patternStr = ((Constant.StringExpr) expr).getEscapedValue();
+    } else if (expr instanceof RegularExpr) {
+      patternStr = ((RegularExpr) expr).getEscapedValue().replaceAll("[\\\\]+", "\\\\");
+    } else {
+      throw new TeddyException("doExtract(): illegal pattern type: " + expr.toString());
+    }
+
+    for (rowno = 0; rowno < objGrid.size(); rowno++) {
+      Row row = objGrid.get(rowno);
+      Row newRow = new Row();
+      for (String colName : colNames) {
+        newRow.add(colName, row.get(colName));
+      }
+      String targetStr = (String)row.get(targetColno);
+      Pattern pattern = Pattern.compile(patternStr);
+      Matcher matcher = pattern.matcher(targetStr);
+      for (int i = 0; i < limit; i++) {
+        if (matcher.find()) {
+          String newColData = targetStr.substring(matcher.start(), matcher.end());
+          newRow.add(newColNames.get(i), newColData);
+        } else {
+          newRow.add(newColNames.get(i), "");
+        }
+      }
+      newDf.objGrid.add(newRow);
+    }
+
     return newDf;
   }
 }
