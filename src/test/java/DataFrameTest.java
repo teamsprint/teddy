@@ -1,5 +1,6 @@
 import com.skt.metatron.discovery.common.preparation.RuleVisitorParser;
 import com.skt.metatron.discovery.common.preparation.rule.*;
+import com.skt.metatron.discovery.common.preparation.rule.Set;
 import com.skt.metatron.teddy.DataFrame;
 import com.skt.metatron.teddy.TeddyException;
 import org.junit.BeforeClass;
@@ -7,9 +8,7 @@ import org.junit.Test;
 
 import java.io.*;
 import java.net.URL;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 
 public class DataFrameTest {
 
@@ -25,84 +24,23 @@ public class DataFrameTest {
     return getResourcePath(relPath, false);
   }
 
-  static private List<String[]> gridSampleCsv;    // sample.csv (Ferrari, Jaruar, ...) (7 columns, 5 rows)
-  static private List<String[]> gridContractCsv;  // ibk_contract_n10000.csv
-  static private List<String[]> gridStoreCsv;     // ibk_store_n10000.csv
-  static private List<String[]> gridStoreCsv1;    // ibk_store_n3000_1.csv
-  static private List<String[]> gridStoreCsv2;    // ibk_store_n3000_2.csv
-  static private List<String[]> gridStoreCsv3;    // ibk_store_n3000_3.csv
-  static private List<String[]> gridStoreCsv4;    // ibk_store_n3000_4.csv
+  private static Map<String, List<String[]>> grids = new HashMap<>();
 
-  @BeforeClass
-  public static void setUp() throws Exception {
-    gridSampleCsv = new ArrayList<>();
-    gridContractCsv = new ArrayList<>();
-    gridStoreCsv = new ArrayList<>();
-    gridStoreCsv1 = new ArrayList<>();
-    gridStoreCsv2 = new ArrayList<>();
-    gridStoreCsv3 = new ArrayList<>();
-    gridStoreCsv4 = new ArrayList<>();
+  static int limitRowCnt = 10000;
 
-    int limitRowCnt = 10000;
+  static private List<String[]> loadGridCsv(String alias, String path) {
+    List<String[]> grid = new ArrayList<>();
 
     BufferedReader br = null;
     String line;
     String cvsSplitBy = ",";
 
     try {
-      br = new BufferedReader(new InputStreamReader(new FileInputStream(getResourcePath("metatron_dataset/small/sample.csv"))));
+      br = new BufferedReader(new InputStreamReader(new FileInputStream(getResourcePath(path))));
       while ((line = br.readLine()) != null) {
         String[] strCols = line.split(cvsSplitBy);
-        gridSampleCsv.add(strCols);
-        if (gridSampleCsv.size() == limitRowCnt)
-          break;
-      }
-
-      br = new BufferedReader(new InputStreamReader(new FileInputStream(getResourcePath("data/ibk_contract_n10000.csv"))));
-      while ((line = br.readLine()) != null) {
-        String[] strCols = line.split(cvsSplitBy);
-        gridContractCsv.add(strCols);
-        if (gridContractCsv.size() == limitRowCnt)
-          break;
-      }
-
-      br = new BufferedReader(new InputStreamReader(new FileInputStream(getResourcePath("data/ibk_store_n10000.csv"))));
-      while ((line = br.readLine()) != null) {
-        String[] strCols = line.split(cvsSplitBy);
-        gridStoreCsv.add(strCols);
-        if (gridStoreCsv.size() == limitRowCnt)
-          break;
-      }
-
-      br = new BufferedReader(new InputStreamReader(new FileInputStream(getResourcePath("data/ibk_store_n3000_1.csv"))));
-      while ((line = br.readLine()) != null) {
-        String[] strCols = line.split(cvsSplitBy);
-        gridStoreCsv1.add(strCols);
-        if (gridStoreCsv1.size() == limitRowCnt)
-          break;
-      }
-
-      br = new BufferedReader(new InputStreamReader(new FileInputStream(getResourcePath("data/ibk_store_n3000_2.csv"))));
-      while ((line = br.readLine()) != null) {
-        String[] strCols = line.split(cvsSplitBy);
-        gridStoreCsv2.add(strCols);
-        if (gridStoreCsv2.size() == limitRowCnt)
-          break;
-      }
-
-      br = new BufferedReader(new InputStreamReader(new FileInputStream(getResourcePath("data/ibk_store_n3000_3.csv"))));
-      while ((line = br.readLine()) != null) {
-        String[] strCols = line.split(cvsSplitBy);
-        gridStoreCsv3.add(strCols);
-        if (gridStoreCsv3.size() == limitRowCnt)
-          break;
-      }
-
-      br = new BufferedReader(new InputStreamReader(new FileInputStream(getResourcePath("data/ibk_store_n3000_4.csv"))));
-      while ((line = br.readLine()) != null) {
-        String[] strCols = line.split(cvsSplitBy);
-        gridStoreCsv4.add(strCols);
-        if (gridStoreCsv4.size() == limitRowCnt)
+        grid.add(strCols);
+        if (grid.size() == limitRowCnt)
           break;
       }
     } catch (FileNotFoundException e) {
@@ -119,27 +57,40 @@ public class DataFrameTest {
       }
     }
 
+    grids.put(alias, grid);
+    return grid;
+  }
+
+  @BeforeClass
+  public static void setUp() throws Exception {
+    loadGridCsv("sample", "metatron_dataset/small/sample.csv");
+    loadGridCsv("contract", "data/ibk_contract_n10000.csv");
+    loadGridCsv("store", "data/ibk_store_n10000.csv");
+    loadGridCsv("store1", "data/ibk_store_n3000_1.csv");
+    loadGridCsv("store2", "data/ibk_store_n3000_2.csv");
+    loadGridCsv("store3", "data/ibk_store_n3000_3.csv");
+    loadGridCsv("store4", "data/ibk_store_n3000_4.csv");
   }
 
   @Test
   public void test_show() {
     DataFrame df = new DataFrame();
-    df.setGrid(gridSampleCsv);
+    df.setGrid(grids.get("sample"));
     df.show();
 
     df = new DataFrame();
-    df.setGrid(gridContractCsv);
+    df.setGrid(grids.get("contract"));
     df.show();
 
     df = new DataFrame();
-    df.setGrid(gridStoreCsv);
+    df.setGrid(grids.get("store"));
     df.show();
   }
 
   @Test
   public void test_drop() throws TeddyException {
     DataFrame df = new DataFrame();
-    df.setGrid(gridSampleCsv);
+    df.setGrid(grids.get("sample"));
     df.show();
 
 //    List<String> targetColNames = new ArrayList<>();
@@ -158,7 +109,7 @@ public class DataFrameTest {
   @Test
   public void test_select() {
     DataFrame df = new DataFrame();
-    df.setGrid(gridSampleCsv);
+    df.setGrid(grids.get("sample"));
     df.show();
 
     List<String> targetColNames = new ArrayList<>();
@@ -213,7 +164,7 @@ public class DataFrameTest {
   @Test
   public void test_rename_settype() throws IOException, TeddyException {
     DataFrame df = new DataFrame();
-    df.setGrid(gridSampleCsv);
+    df.setGrid(grids.get("sample"));
     df.show();
     df = prepare_common(df);
     df.show();
@@ -222,7 +173,7 @@ public class DataFrameTest {
   @Test
   public void test_set_plus() throws IOException, TeddyException {
     DataFrame df = new DataFrame();
-    df.setGrid(gridSampleCsv);
+    df.setGrid(grids.get("sample"));
     df.show();
     df = prepare_common(df);
 
@@ -237,7 +188,7 @@ public class DataFrameTest {
   @Test
   public void test_set_minus() throws IOException, TeddyException {
     DataFrame df = new DataFrame();
-    df.setGrid(gridSampleCsv);
+    df.setGrid(grids.get("sample"));
     df.show();
     df = prepare_common(df);
 
@@ -252,7 +203,7 @@ public class DataFrameTest {
   @Test
   public void test_set_mul() throws IOException, TeddyException {
     DataFrame df = new DataFrame();
-    df.setGrid(gridSampleCsv);
+    df.setGrid(grids.get("sample"));
     df.show();
     df = prepare_common(df);
 
@@ -267,7 +218,7 @@ public class DataFrameTest {
   @Test
   public void test_derive_mul() throws IOException, TeddyException {
     DataFrame df = new DataFrame();
-    df.setGrid(gridSampleCsv);
+    df.setGrid(grids.get("sample"));
     df.show();
     df = prepare_common(df);
 
@@ -282,7 +233,7 @@ public class DataFrameTest {
   @Test
   public void test_set_div() throws IOException, TeddyException {
     DataFrame df = new DataFrame();
-    df.setGrid(gridSampleCsv);
+    df.setGrid(grids.get("sample"));
     df.show();
     df = prepare_common(df);
 
@@ -297,7 +248,7 @@ public class DataFrameTest {
   @Test
   public void test_set_type_mismatch() throws IOException, TeddyException {
     DataFrame df = new DataFrame();
-    df.setGrid(gridSampleCsv);
+    df.setGrid(grids.get("sample"));
     df.show();
     df = prepare_common(df);
 
@@ -318,7 +269,7 @@ public class DataFrameTest {
     List<String> ruleStrings = new ArrayList<>();
 
     DataFrame store = new DataFrame();
-    store.setGrid(gridStoreCsv);
+    store.setGrid(grids.get("store"));
     store.show();
 
     ruleStrings.clear();
@@ -332,7 +283,7 @@ public class DataFrameTest {
     List<String> ruleStrings = new ArrayList<>();
 
     DataFrame contract = new DataFrame();
-    contract.setGrid(gridContractCsv);
+    contract.setGrid(grids.get("contract"));
     contract.show();
 
     ruleStrings.add("rename col: column1 to: cdate");
@@ -354,7 +305,7 @@ public class DataFrameTest {
     contract.show();
 
     DataFrame store = new DataFrame();
-    store.setGrid(gridStoreCsv);
+    store.setGrid(grids.get("store"));
     store.show();
 
     ruleStrings.clear();
@@ -375,7 +326,7 @@ public class DataFrameTest {
     List<String> ruleStrings = new ArrayList<>();
 
     DataFrame contract = new DataFrame();
-    contract.setGrid(gridContractCsv);
+    contract.setGrid(grids.get("contract"));
     contract.show();
 
     ruleStrings.add("rename col: column1 to: cdate");
@@ -397,7 +348,7 @@ public class DataFrameTest {
     contract.show();
 
     DataFrame store = new DataFrame();
-    store.setGrid(gridStoreCsv);
+    store.setGrid(grids.get("store"));
     store.show();
 
     ruleStrings.clear();
@@ -418,13 +369,14 @@ public class DataFrameTest {
     List<String> ruleStrings = new ArrayList<>();
 
     DataFrame store1 = new DataFrame();
-    store1.setGrid(gridStoreCsv1);
     DataFrame store2 = new DataFrame();
-    store2.setGrid(gridStoreCsv2);
     DataFrame store3 = new DataFrame();
-    store3.setGrid(gridStoreCsv3);
     DataFrame store4 = new DataFrame();
-    store4.setGrid(gridStoreCsv4);
+
+    store1.setGrid(grids.get("store1"));
+    store2.setGrid(grids.get("store2"));
+    store3.setGrid(grids.get("store3"));
+    store4.setGrid(grids.get("store4"));
 
     store1.show();
 
