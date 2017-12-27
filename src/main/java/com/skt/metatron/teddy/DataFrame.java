@@ -3,7 +3,9 @@ package com.skt.metatron.teddy;
 import com.skt.metatron.discovery.common.preparation.RuleVisitorParser;
 import com.skt.metatron.discovery.common.preparation.rule.*;
 import com.skt.metatron.discovery.common.preparation.rule.expr.*;
+import org.codehaus.jackson.JsonParseException;
 import org.codehaus.jackson.JsonProcessingException;
+import org.codehaus.jackson.map.JsonMappingException;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -11,7 +13,9 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -157,19 +161,6 @@ public class DataFrame implements Serializable {
       System.out.print("|");
     }
     System.out.println("");
-  }
-
-  private DataFrame clone(DataFrame df) {
-    return (DataFrame) org.apache.commons.lang.SerializationUtils.clone(this);
-  }
-
-  private void renameInPlace(String existingName, String newName) {
-    for (int colno = 0; colno < colCnt; colno++) {
-      if (colNames.get(colno).equals(existingName)) {
-        colNames.set(colno, newName);
-        break;
-      }
-    }
   }
 
   public DataFrame select(List<String> targetColNames) {
@@ -737,6 +728,115 @@ public class DataFrame implements Serializable {
       newDf.objGrid.add(newRow);
     }
 
+    return newDf;
+  }
+
+  private String checkNewColName(String newColName, boolean convert) throws TeddyException {
+    if (colNames.contains(newColName)) {
+      if (convert) {
+        return checkNewColName("r_" + newColName, convert);
+      }
+      throw new TeddyException("colNameCheck(): column name exists: " + newColName);
+    }
+    return newColName;
+  }
+
+  private String getEscapedString(String str) {
+    return str.substring(str.indexOf('"') + 1, str.lastIndexOf('"'));
+  }
+
+  public DataFrame doUnnest(Unnest unnest) throws TeddyException {
+    String targetColName = unnest.getCol();
+    int targetColno = -1;
+    Expression idx = unnest.getIdx();
+    int rowno, colno;
+
+    for (colno = 0; colno < colCnt; colno++) {
+      if (colNames.get(colno).equals(targetColName)) {
+        if (colTypes.get(colno) != TYPE.ARRAY && colTypes.get(colno) != TYPE.MAP) {
+          throw new TeddyException("doUnnest(): works only on ARRAY/MAP: " + colTypes.get(colno));
+        }
+        targetColno = colno;
+        break;
+      }
+    }
+    if (colno == colCnt) {
+      throw new TeddyException("doUnnest(): column not found: " + targetColName);
+    }
+
+    int arrayIdx = -1;
+    String mapKey = null;
+    String newColName;
+
+    if (colTypes.get(targetColno) == TYPE.ARRAY) {
+      // 컬럼이름은 언제나 unnest_0
+      // row별로 fetch는 arrayIdx로
+      if (idx instanceof Constant.StringExpr) {   // supports StringExpr for backward-compatability
+        arrayIdx = Integer.valueOf(((Constant.StringExpr) idx).getEscapedValue());
+      } else if (idx instanceof Constant.LongExpr) {
+        arrayIdx = ((Long)((Constant.LongExpr) idx).getValue()).intValue();
+      } else {
+        throw new TeddyException("doUnnest(): invalid index type: " + idx.toString());
+      }
+      newColName = "unnest_0";
+    } else {
+      // row별로 fetch는 mapKey로
+      // 컬럼이름은 mapKey를 기존컬럼과 안겹치게 변형한 것
+      if (idx instanceof Identifier.IdentifierExpr) {
+        throw new TeddyException("doUnnest(): idx on MAP type should be STRING (maybe, this is a column name): " + ((Identifier.IdentifierExpr) idx).getValue());
+      } else if (idx instanceof Constant.StringExpr) {
+        mapKey = ((Constant.StringExpr) idx).getEscapedValue();
+        newColName = checkNewColName("unnest_" + mapKey, true);
+      } else {
+        throw new TeddyException("doUnnest(): idx on MAP type should be STRING: " + idx.toString());
+      }
+    }
+
+    DataFrame newDf = new DataFrame();
+    newDf.colCnt = colCnt;
+    newDf.colNames.addAll(colNames);
+    newDf.colTypes.addAll(colTypes);
+
+    newDf.colCnt++;
+    newDf.colNames.add(newColName);
+    newDf.colTypes.add(TYPE.STRING);
+
+    for (rowno = 0; rowno < objGrid.size(); rowno++) {
+      Row row = objGrid.get(rowno);
+      Row newRow = new Row();
+      for (colno = 0; colno < colCnt; colno++) {
+        newRow.add(colNames.get(colno), row.get(colno));
+      }
+
+      if (newDf.colTypes.get(targetColno) == TYPE.ARRAY) {
+        String csv = ((String)row.get(targetColno)).substring(1);
+        csv = csv.substring(0, csv.length() - 1);
+        String[] values = csv.split(",");
+        if (arrayIdx >= values.length) {
+          throw new TeddyException(String.format("doUnnest(): arrayIdx > array length: idx=%d len=%d rowno=%d", arrayIdx, values.length, rowno));
+        }
+        newRow.add(newColName, getEscapedString(values[arrayIdx]));
+      } else {
+        Map<String, Object> map;
+        try {
+          map = new ObjectMapper().readValue((String) row.get(targetColno), HashMap.class);
+        } catch (JsonParseException e) {
+          LOGGER.error("doUnnest(): JsonParseException", e);
+          throw new TeddyException("doUnnest(): invalid JSON: " + targetColName);
+        } catch (JsonMappingException e) {
+          LOGGER.error("doUnnest(): JsonMappingException", e);
+          throw new TeddyException("doUnnest(): cannot map JSON: " + targetColName);
+        } catch (IOException e) {
+          LOGGER.error("doUnnest(): IOException", e);
+          throw new TeddyException("doUnnest(): I/O error: " + targetColName);
+        }
+        if (!map.containsKey(mapKey)) {
+          throw new TeddyException("doUnnest(): MAP value doesn't have requested key: " + mapKey);
+        }
+        newRow.add(newColName, map.get(mapKey));
+      }
+      newDf.objGrid.add(newRow);
+    }
     return newDf;
   }
 }

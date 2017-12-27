@@ -405,7 +405,7 @@ public class DataFrameTest {
   }
 
   @Test
-  public void test_nest_array() throws IOException, TeddyException {
+  public void test_nest_unnest_array() throws IOException, TeddyException {
     DataFrame contract = new DataFrame();
     contract.setGrid(grids.get("contract"));
     contract = prepare_contract(contract);
@@ -415,10 +415,15 @@ public class DataFrameTest {
     Rule rule = new RuleVisitorParser().parse(ruleString);
     DataFrame newDf = contract.doNest((Nest)rule);
     newDf.show();
+
+    ruleString = "unnest col: pcode into: array idx: 0";  // into: is not used
+    rule = new RuleVisitorParser().parse(ruleString);
+    newDf = newDf.doUnnest((Unnest)rule);
+    newDf.show();
   }
 
   @Test
-  public void test_nest_map() throws IOException, TeddyException {
+  public void test_nest_unnest_map() throws IOException, TeddyException {
     DataFrame contract = new DataFrame();
     contract.setGrid(grids.get("contract"));
     contract = prepare_contract(contract);
@@ -427,6 +432,11 @@ public class DataFrameTest {
     String ruleString = "nest col: pcode1, pcode2, pcode3, pcode4 into: map as: pcode";
     Rule rule = new RuleVisitorParser().parse(ruleString);
     DataFrame newDf = contract.doNest((Nest)rule);
+    newDf.show();
+
+    ruleString = "unnest col: pcode into: map idx: 'pcode3'"; // into: is not used
+    rule = new RuleVisitorParser().parse(ruleString);
+    newDf = newDf.doUnnest((Unnest)rule);
     newDf.show();
   }
 }
