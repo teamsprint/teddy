@@ -741,8 +741,12 @@ public class DataFrame implements Serializable {
     return newColName;
   }
 
-  private String getEscapedString(String str) {
+  private String stripDoubleQuote(String str) {
     return str.substring(str.indexOf('"') + 1, str.lastIndexOf('"'));
+  }
+
+  private String stripSingleQuote(String str) {
+    return str.substring(str.indexOf("'") + 1, str.lastIndexOf("'"));
   }
 
   public DataFrame doUnnest(Unnest unnest) throws TeddyException {
@@ -815,7 +819,7 @@ public class DataFrame implements Serializable {
         if (arrayIdx >= values.length) {
           throw new TeddyException(String.format("doUnnest(): arrayIdx > array length: idx=%d len=%d rowno=%d", arrayIdx, values.length, rowno));
         }
-        newRow.add(newColName, getEscapedString(values[arrayIdx]));
+        newRow.add(newColName, stripDoubleQuote(values[arrayIdx]));
       } else {
         Map<String, Object> map;
         try {
@@ -835,6 +839,59 @@ public class DataFrame implements Serializable {
         }
         newRow.add(newColName, map.get(mapKey));
       }
+      newDf.objGrid.add(newRow);
+    }
+    return newDf;
+  }
+
+  public DataFrame doMerge(Merge merge) throws TeddyException {
+    Expression targetExpr = merge.getCol();
+    String with = stripSingleQuote(merge.getWith());
+    String as = merge.getAs();
+    List<Integer> targetColnos = new ArrayList<>();
+    int rowno, colno;
+
+    String newColName = checkNewColName(as, true);
+
+    DataFrame newDf = new DataFrame();
+    newDf.colCnt = colCnt;
+    newDf.colNames.addAll(colNames);
+    newDf.colTypes.addAll(colTypes);
+
+    newDf.colCnt++;
+    newDf.colNames.add(newColName);
+    newDf.colTypes.add(TYPE.STRING);
+
+    List<String> targetColNames = null;
+    if (targetExpr instanceof Identifier.IdentifierExpr) {
+      targetColNames = new ArrayList<>();
+      targetColNames.add(((Identifier.IdentifierExpr) targetExpr).getValue());
+    } else if (targetExpr instanceof Identifier.IdentifierArrayExpr) {
+      targetColNames = (((Identifier.IdentifierArrayExpr) targetExpr).getValue());
+    }
+
+    if (targetColNames.size() == 0) {
+      throw new TeddyException("doMerge(): no input column designated");
+    }
+
+    for (String colName : targetColNames) {
+      if (!colNames.contains(colName)) {
+        throw new TeddyException("doMerge(): column not found: " + colName);
+      }
+    }
+
+    for (rowno = 0; rowno < objGrid.size(); rowno++) {
+      Row row = objGrid.get(rowno);
+      Row newRow = new Row();
+      for (colno = 0; colno < colCnt; colno++) {
+        newRow.add(colNames.get(colno), row.get(colno));
+      }
+      StringBuilder sb = new StringBuilder();
+      sb.append(row.get(targetColNames.get(0)));
+      for (int i = 1; i < targetColNames.size(); i++) {
+        sb.append(with).append(row.get(targetColNames.get(i)));
+      }
+      newRow.add(as, sb.toString());
       newDf.objGrid.add(newRow);
     }
     return newDf;

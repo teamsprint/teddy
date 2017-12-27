@@ -439,4 +439,17 @@ public class DataFrameTest {
     newDf = newDf.doUnnest((Unnest)rule);
     newDf.show();
   }
+
+  @Test
+  public void test_merge() throws IOException, TeddyException {
+    DataFrame contract = new DataFrame();
+    contract.setGrid(grids.get("contract"));
+    contract = prepare_contract(contract);
+    contract.show();
+
+    String ruleString = "merge col: pcode1, pcode2, pcode3, pcode4 with: '_' as: 'pcode'";
+    Rule rule = new RuleVisitorParser().parse(ruleString);
+    DataFrame newDf = contract.doMerge((Merge)rule);
+    newDf.show();
+  }
 }
