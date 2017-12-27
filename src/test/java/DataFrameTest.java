@@ -109,7 +109,7 @@ public class DataFrameTest {
 
     List<String> targetColNames = new ArrayList<>();
     targetColNames.add("name");
-    targetColNames.add("HP");
+    targetColNames.add("speed");
     DataFrame newDf = df.select(targetColNames);
     newDf.show();
   }
@@ -150,11 +150,11 @@ public class DataFrameTest {
     ruleStrings.add("rename col: column2 to: recent");
     ruleStrings.add("rename col: column3 to: itemNo");
     ruleStrings.add("rename col: column4 to: name");
-    ruleStrings.add("rename col: column5 to: HP");
+    ruleStrings.add("rename col: column5 to: speed");
     ruleStrings.add("rename col: column6 to: price");
     ruleStrings.add("rename col: column7 to: rank");
     ruleStrings.add("settype col: itemNo type: long");
-    ruleStrings.add("settype col: HP type: long");
+    ruleStrings.add("settype col: speed type: long");
     ruleStrings.add("settype col: price type: double");
     ruleStrings.add("settype col: rank type: long");
 
@@ -176,7 +176,7 @@ public class DataFrameTest {
     df = prepare_common(df);
     df.show();
 
-    String ruleString = "set col: HP value: HP + 1000";
+    String ruleString = "set col: speed value: speed + 1000";
     String jsonRuleString = df.parseRuleString(ruleString);
     System.out.println(jsonRuleString);
     Rule rule = new RuleVisitorParser().parse(ruleString);
@@ -191,7 +191,7 @@ public class DataFrameTest {
     df = prepare_common(df);
     df.show();
 
-    String ruleString = "set col: HP value: HP - 300";
+    String ruleString = "set col: speed value: speed - 300";
     String jsonRuleString = df.parseRuleString(ruleString);
     System.out.println(jsonRuleString);
     Rule rule = new RuleVisitorParser().parse(ruleString);
@@ -206,7 +206,7 @@ public class DataFrameTest {
     df.show();
     df = prepare_common(df);
 
-    String ruleString = "set col: HP value: HP * 10";
+    String ruleString = "set col: speed value: speed * 10";
     String jsonRuleString = df.parseRuleString(ruleString);
     System.out.println(jsonRuleString);
     Rule rule = new RuleVisitorParser().parse(ruleString);
@@ -221,7 +221,7 @@ public class DataFrameTest {
     df = prepare_common(df);
     df.show();
 
-    String ruleString = "derive as: Turbo value: HP * 10";
+    String ruleString = "derive as: Turbo value: speed * 10";
     String jsonRuleString = df.parseRuleString(ruleString);
     System.out.println(jsonRuleString);
     Rule rule = new RuleVisitorParser().parse(ruleString);
@@ -236,7 +236,7 @@ public class DataFrameTest {
     df = prepare_common(df);
     df.show();
 
-    String ruleString = "set col: HP value: HP / 10";
+    String ruleString = "set col: speed value: speed / 10";
     String jsonRuleString = df.parseRuleString(ruleString);
     System.out.println(jsonRuleString);
     Rule rule = new RuleVisitorParser().parse(ruleString);
@@ -251,7 +251,7 @@ public class DataFrameTest {
     df = prepare_common(df);
     df.show();
 
-    String ruleString = "set col: HP value: HP * '10'";
+    String ruleString = "set col: speed value: speed * '10'";
     String jsonRuleString = df.parseRuleString(ruleString);
     System.out.println(jsonRuleString);
     Rule rule = new RuleVisitorParser().parse(ruleString);
@@ -401,6 +401,32 @@ public class DataFrameTest {
     String ruleString = "extract col: cdate on: /\\w+/ quote: '\"' limit: 3";
     Rule rule = new RuleVisitorParser().parse(ruleString);
     DataFrame newDf = contract.doExtract((Extract)rule);
+    newDf.show();
+  }
+
+  @Test
+  public void test_nest_array() throws IOException, TeddyException {
+    DataFrame contract = new DataFrame();
+    contract.setGrid(grids.get("contract"));
+    contract = prepare_contract(contract);
+    contract.show();
+
+    String ruleString = "nest col: pcode1, pcode2, pcode3, pcode4 into: array as: pcode";
+    Rule rule = new RuleVisitorParser().parse(ruleString);
+    DataFrame newDf = contract.doNest((Nest)rule);
+    newDf.show();
+  }
+
+  @Test
+  public void test_nest_map() throws IOException, TeddyException {
+    DataFrame contract = new DataFrame();
+    contract.setGrid(grids.get("contract"));
+    contract = prepare_contract(contract);
+    contract.show();
+
+    String ruleString = "nest col: pcode1, pcode2, pcode3, pcode4 into: map as: pcode";
+    Rule rule = new RuleVisitorParser().parse(ruleString);
+    DataFrame newDf = contract.doNest((Nest)rule);
     newDf.show();
   }
 }

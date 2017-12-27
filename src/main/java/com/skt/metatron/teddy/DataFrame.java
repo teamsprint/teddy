@@ -18,9 +18,31 @@ import java.util.regex.Pattern;
 public class DataFrame implements Serializable {
   private static Logger LOGGER = LoggerFactory.getLogger(DataFrame.class);
 
+  enum TYPE {
+    DOUBLE,
+    LONG,
+    STRING,
+    ARRAY,
+    MAP,
+    INVALID
+  }
+
+  private static TYPE getType(ExprType exprType) {
+    switch (exprType) {
+      case DOUBLE:
+        return TYPE.DOUBLE;
+      case LONG:
+        return TYPE.LONG;
+      case STRING:
+        return TYPE.STRING;
+    }
+    assert false : exprType;
+    return TYPE.INVALID;
+  }
+
   private int colCnt;
   private List<String> colNames;
-  private List<ExprType> colTypes;
+  private List<TYPE> colTypes;
   private List<Row> objGrid;
 
   // 처음 data를 가져오는 정보부터, 현재 dataframe에 이르기까지의 모든 정보
@@ -55,7 +77,7 @@ public class DataFrame implements Serializable {
 
       for (int colno = 1; colno <= colCnt; colno++) {
         colNames.add("column" + colno);
-        colTypes.add(ExprType.STRING);
+        colTypes.add(TYPE.STRING);
       }
     }
 
@@ -256,8 +278,8 @@ public class DataFrame implements Serializable {
     return json;
   }
 
-  private ExprType decideType(Expression expr) throws TeddyException {
-    ExprType resultType = null;
+  private TYPE decideType(Expression expr) throws TeddyException {
+    TYPE resultType = TYPE.INVALID;
     String errmsg;
     int i;
 
@@ -277,11 +299,11 @@ public class DataFrame implements Serializable {
     // Constant
     else if (expr instanceof Constant) {
       if (expr instanceof Constant.StringExpr) {
-        resultType = ExprType.STRING;
+        resultType = getType(ExprType.STRING);
       } else if (expr instanceof Constant.LongExpr) {
-        resultType = ExprType.LONG;
+        resultType = getType(ExprType.LONG);
       } else if (expr instanceof Constant.DoubleExpr) {
-        resultType = ExprType.DOUBLE;
+        resultType = getType(ExprType.DOUBLE);
       } else {
         errmsg = String.format("decideType(): unsupported constant type: expr=%s", expr);   // TODO: boolean, array support
         throw new TeddyException(errmsg);
@@ -289,8 +311,8 @@ public class DataFrame implements Serializable {
     }
     // Binary Operation
     else if (expr instanceof Expr.BinaryNumericOpExprBase) {
-      ExprType left = decideType(((Expr.BinaryNumericOpExprBase) expr).getLeft());
-      ExprType right = decideType(((Expr.BinaryNumericOpExprBase) expr).getRight());
+      TYPE left = decideType(((Expr.BinaryNumericOpExprBase) expr).getLeft());
+      TYPE right = decideType(((Expr.BinaryNumericOpExprBase) expr).getRight());
       if (left == right) {
         return left;
       }
@@ -302,7 +324,7 @@ public class DataFrame implements Serializable {
   }
 
   private Object eval(int rowno, Expression expr) throws TeddyException {
-    ExprType resultType = null;
+    TYPE resultType = TYPE.INVALID;
     Object resultObj = null;
     String errmsg;
     int colno;
@@ -324,11 +346,11 @@ public class DataFrame implements Serializable {
     // Constant
     else if (expr instanceof Constant) {
       if (expr instanceof Constant.StringExpr) {
-        resultType = ExprType.STRING;
+        resultType = getType(ExprType.STRING);
       } else if (expr instanceof Constant.LongExpr) {
-        resultType = ExprType.LONG;
+        resultType = getType(ExprType.LONG);
       } else if (expr instanceof Constant.DoubleExpr) {
-        resultType = ExprType.DOUBLE;
+        resultType = getType(ExprType.DOUBLE);
       } else {
         errmsg = String.format("eval(): unsupported constant type: expr=%s", expr);   // TODO: boolean, array support
         throw new TeddyException(errmsg);
@@ -344,7 +366,7 @@ public class DataFrame implements Serializable {
     return resultObj;
   }
 
-  private Object cast(Object obj, ExprType fromType, ExprType toType) {
+  private Object cast(Object obj, TYPE fromType, TYPE toType) throws TeddyException {
     switch (toType) {
       case DOUBLE:
         switch (fromType) {
@@ -354,6 +376,8 @@ public class DataFrame implements Serializable {
             return Double.valueOf(((Long)obj).doubleValue());
           case STRING:
             return Double.valueOf(obj.toString());
+          default:
+            throw new TeddyException("cast(): cannot cast to " + toType);
         }
 
       case LONG:
@@ -364,10 +388,15 @@ public class DataFrame implements Serializable {
             return obj;
           case STRING:
             return Long.valueOf(obj.toString());
+          default:
+            throw new TeddyException("cast(): cannot cast to " + toType);
         }
 
       case STRING:
         break;
+
+      default:
+        throw new TeddyException("cast(): cannot cast from " + toType);
     }
     return obj.toString();
   }
@@ -375,7 +404,7 @@ public class DataFrame implements Serializable {
   public DataFrame doSetType(SetType setType) throws TeddyException {
     DataFrame newDf = new DataFrame();
     String targetColName = setType.getCol();
-    ExprType toType = ExprType.bestEffortOf(setType.getType());
+    TYPE toType = getType(ExprType.bestEffortOf(setType.getType()));
     int targetColNo = -1;
 
     newDf.colCnt = colCnt;
@@ -604,7 +633,7 @@ public class DataFrame implements Serializable {
     } else {
       for (colno = 0; colno < colCnt; colno++) {
         if (colNames.get(colno).equals(targetColName)) {
-          if (colTypes.get(colno) != ExprType.STRING) {
+          if (colTypes.get(colno) != TYPE.STRING) {
             throw new TeddyException("doExtract(): works only on STRING: " + colTypes.get(colno));
           }
           targetColno = colno;
@@ -625,7 +654,7 @@ public class DataFrame implements Serializable {
       }
       newColNames.add(newColName);  // for newRow add
       newDf.colNames.add(newColName);
-      newDf.colTypes.add(ExprType.STRING);
+      newDf.colTypes.add(TYPE.STRING);
       newDf.colCnt++;
     }
 
@@ -654,6 +683,56 @@ public class DataFrame implements Serializable {
         } else {
           newRow.add(newColNames.get(i), "");
         }
+      }
+      newDf.objGrid.add(newRow);
+    }
+
+    return newDf;
+  }
+
+  public DataFrame doNest(Nest nest) throws TeddyException {
+    Expression targetExpr = nest.getCol();
+    List<String> targetColNames = new ArrayList<>();
+    String into = nest.getInto();
+    String as = nest.getAs();
+    int rowno, colno;
+
+    if (targetExpr instanceof Identifier.IdentifierExpr) {
+      targetColNames.add(((Identifier.IdentifierExpr) targetExpr).getValue());
+    } else if (targetExpr instanceof Identifier.IdentifierArrayExpr) {
+      targetColNames.addAll(((Identifier.IdentifierArrayExpr) targetExpr).getValue());
+    } else {
+      assert false : targetExpr;
+    }
+
+    DataFrame newDf = new DataFrame();
+    newDf.colCnt = colCnt;
+    newDf.colNames.addAll(colNames);
+    newDf.colTypes.addAll(colTypes);
+
+    newDf.colCnt++;
+    newDf.colNames.add(as);
+    newDf.colTypes.add(into.equalsIgnoreCase("ARRAY") ? TYPE.ARRAY : TYPE.MAP);
+
+    for (rowno = 0; rowno < objGrid.size(); rowno++) {
+      Row row  = objGrid.get(rowno);
+      Row newRow = new Row();
+      for (colno = 0; colno < colCnt; colno++) {
+        newRow.add(colNames.get(colno), row.get(colno));
+      }
+
+      if (newDf.colTypes.get(newDf.colCnt - 1) == TYPE.ARRAY) {
+        List<String> quotedValues = new ArrayList<>();
+        for (String colName : targetColNames) {
+          quotedValues.add("\"" + row.get(colName) + "\"");
+        }
+        newRow.add(as, "[" + String.join(",", quotedValues) + "]");
+      } else {
+        List<String> quotedKayVals = new ArrayList<>();
+        for (String colName : targetColNames) {
+          quotedKayVals.add("\"" + colName + "\":\"" + row.get(colName) + "\"");
+        }
+        newRow.add(as, "{" + String.join(",", quotedKayVals) + "}");
       }
       newDf.objGrid.add(newRow);
     }
