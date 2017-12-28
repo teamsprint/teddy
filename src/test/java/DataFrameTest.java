@@ -452,4 +452,22 @@ public class DataFrameTest {
     DataFrame newDf = contract.doMerge((Merge)rule);
     newDf.show();
   }
+
+  @Test
+  public void test_merge_split() throws IOException, TeddyException {
+    DataFrame contract = new DataFrame();
+    contract.setGrid(grids.get("contract"));
+    contract = prepare_contract(contract);
+    contract.show();
+
+    String ruleString = "merge col: pcode1, pcode2, pcode3, pcode4 with: '_' as: 'pcode'";
+    Rule rule = new RuleVisitorParser().parse(ruleString);
+    DataFrame newDf = contract.doMerge((Merge)rule);
+    newDf.show();
+
+    ruleString = "split col: pcode on: '_' limit: 4";
+    rule = new RuleVisitorParser().parse(ruleString);
+    newDf = newDf.doSplit((Split)rule);
+    newDf.show();
+  }
 }

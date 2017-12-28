@@ -490,19 +490,21 @@ public class DataFrame implements Serializable {
 
     Row targetRow = objGrid.get(targetRowno);
     for (int colno = 0; colno < colCnt; colno++) {
-      newDf.colNames.add(colno, (String)targetRow.get(colno));
+      newDf.colNames.add(colno, (String)targetRow.get(colno));  // colno 필요?
       newDf.colTypes.add(colTypes.get(colno));
     }
 
     for (int rowno = 0; rowno < objGrid.size(); rowno++) {
-      if (rowno != targetRowno) {
-        Row row = objGrid.get(rowno);
-        Row newRow = new Row();
-        for (int colno = 0; colno < colCnt; colno++) {
-          newRow.add(newDf.colNames.get(colno), row.get(colno));
-        }
-        newDf.objGrid.add(newRow);
+      if (rowno == targetRowno) {
+        continue;
       }
+
+      Row row = objGrid.get(rowno);
+      Row newRow = new Row();
+      for (int colno = 0; colno < colCnt; colno++) {
+        newRow.add(newDf.colNames.get(colno), row.get(colno));
+      }
+      newDf.objGrid.add(newRow);
     }
 
     return newDf;
@@ -514,7 +516,7 @@ public class DataFrame implements Serializable {
     newRow.add(colName, lrow.get(colName));                             // left에서 온 컬럼은 이름 그대로 넣음
     }
     for (String colName : rightSelectColNames) {
-      newRow.add(this.colNames.get(newRow.colCnt), rrow.get(colName));  // 필요한 경우 "r_"이 붙은 컬럼 이름
+      newRow.add(this.colNames.get(newRow.colCnt), rrow.get(colName));  // 필요한 경우 "r_"이 붙은 컬럼 이름 (여기까지 온 것은 이미 붙은 상황)
     }
     objGrid.add(newRow);
   }
@@ -537,11 +539,7 @@ public class DataFrame implements Serializable {
       newDf.colTypes.add(colTypes.get(colNames.indexOf(colName)));
     }
     for (String colName : rightSelectColNames) {
-      if (leftSelectColNames.contains(colName)) {
-        newDf.colNames.add("r_" + colName);       // 같은 column이름이 있을 경우 right에서 온 것에 "r_"을 붙여준다. (twinkle과 동일한 규칙)
-      } else {
-        newDf.colNames.add(colName);
-      }
+      newDf.colNames.add(checkRightColName(colName));  // 같은 column이름이 있을 경우 right에서 온 것에 "r_"을 붙여준다. (twinkle과 동일한 규칙)
       newDf.colTypes.add(rightDataFrame.colTypes.get(rightDataFrame.colNames.indexOf(colName)));
     }
 
@@ -551,7 +549,7 @@ public class DataFrame implements Serializable {
       for (int rrowno = 0; rrowno < rightDataFrame.objGrid.size(); rrowno++) {
         Row rrow = rightDataFrame.objGrid.get(rrowno);
 
-        Identifier.IdentifierExpr left = (Identifier.IdentifierExpr) eqExpr.getLeft();
+        Identifier.IdentifierExpr left = (Identifier.IdentifierExpr) eqExpr.getLeft();    // loop 밖으로
         Identifier.IdentifierExpr right = (Identifier.IdentifierExpr) eqExpr.getRight();
         ExprType ltype = left.eval(lrow).type();
 
@@ -731,10 +729,17 @@ public class DataFrame implements Serializable {
     return newDf;
   }
 
+  private String checkRightColName(String rightColName) throws TeddyException {
+    if (colNames.contains(rightColName)) {
+      return checkRightColName("r_" + rightColName);
+    }
+    return rightColName;
+  }
+
   private String checkNewColName(String newColName, boolean convert) throws TeddyException {
     if (colNames.contains(newColName)) {
       if (convert) {
-        return checkNewColName("r_" + newColName, convert);
+        return checkNewColName(newColName + "_1", convert);
       }
       throw new TeddyException("colNameCheck(): column name exists: " + newColName);
     }
@@ -821,18 +826,23 @@ public class DataFrame implements Serializable {
         }
         newRow.add(newColName, stripDoubleQuote(values[arrayIdx]));
       } else {
+        String col = null;
         Map<String, Object> map;
         try {
-          map = new ObjectMapper().readValue((String) row.get(targetColno), HashMap.class);
+          col = (String) row.get(targetColno);
+          map = new ObjectMapper().readValue((String) col, HashMap.class);
         } catch (JsonParseException e) {
-          LOGGER.error("doUnnest(): JsonParseException", e);
-          throw new TeddyException("doUnnest(): invalid JSON: " + targetColName);
+          String msg = "doUnnest(): invalid JSON: col=" + col;
+          LOGGER.error(msg);
+          throw new TeddyException(msg);
         } catch (JsonMappingException e) {
-          LOGGER.error("doUnnest(): JsonMappingException", e);
-          throw new TeddyException("doUnnest(): cannot map JSON: " + targetColName);
+          String msg = String.format("doUnnest(): cannot map JSON: mapKey=%s col=%s", mapKey, col);
+          LOGGER.error(msg, e);
+          throw new TeddyException(msg);
         } catch (IOException e) {
-          LOGGER.error("doUnnest(): IOException", e);
-          throw new TeddyException("doUnnest(): I/O error: " + targetColName);
+          String msg = "doUnnest(): IOException: mapKey=" + mapKey;
+          LOGGER.error(msg);
+          throw new TeddyException(msg);
         }
         if (!map.containsKey(mapKey)) {
           throw new TeddyException("doUnnest(): MAP value doesn't have requested key: " + mapKey);
@@ -847,7 +857,7 @@ public class DataFrame implements Serializable {
   public DataFrame doMerge(Merge merge) throws TeddyException {
     Expression targetExpr = merge.getCol();
     String with = stripSingleQuote(merge.getWith());
-    String as = merge.getAs();
+    String as = stripSingleQuote(merge.getAs());
     List<Integer> targetColnos = new ArrayList<>();
     int rowno, colno;
 
@@ -867,7 +877,7 @@ public class DataFrame implements Serializable {
       targetColNames = new ArrayList<>();
       targetColNames.add(((Identifier.IdentifierExpr) targetExpr).getValue());
     } else if (targetExpr instanceof Identifier.IdentifierArrayExpr) {
-      targetColNames = (((Identifier.IdentifierArrayExpr) targetExpr).getValue());
+      targetColNames = ((Identifier.IdentifierArrayExpr) targetExpr).getValue();
     }
 
     if (targetColNames.size() == 0) {
@@ -894,6 +904,82 @@ public class DataFrame implements Serializable {
       newRow.add(as, sb.toString());
       newDf.objGrid.add(newRow);
     }
+    return newDf;
+  }
+
+  public DataFrame doSplit(Split split) throws TeddyException {
+    String targetColName = split.getCol();
+    Expression expr = split.getOn();
+    int limit = split.getLimit();
+    int targetColno = -1;
+    int rowno, colno;
+
+    for (colno = 0; colno < colCnt; colno++) {
+      if (colNames.get(colno).equals(targetColName)) {
+        if (colTypes.get(colno) != TYPE.STRING) {
+          throw new TeddyException("doSplit(): works only on STRING: " + colTypes.get(colno));
+        }
+        targetColno = colno;
+        break;
+      }
+    }
+
+    if (colno == colCnt) {
+      throw new TeddyException("doSplit(): column not found: " + targetColName);
+    }
+    DataFrame newDf = new DataFrame();
+    newDf.colCnt = colCnt;
+    newDf.colNames.addAll(colNames);
+    newDf.colTypes.addAll(colTypes);
+
+    List<String> newColNames = new ArrayList<>();
+    for (int i = 0; i <= limit; i++) {
+      String newColName = checkNewColName("split_" + targetColName + (i + 1), true);
+      newColNames.add(newColName);
+      newDf.colNames.add(newColName);
+      newDf.colTypes.add(TYPE.STRING);
+      newDf.colCnt++;
+    }
+
+    String patternStr;
+    if (expr instanceof Constant.StringExpr) {
+      patternStr = ((Constant.StringExpr) expr).getEscapedValue();
+    } else if (expr instanceof RegularExpr) {
+      patternStr = ((RegularExpr) expr).getEscapedValue().replaceAll("[\\\\]+", "\\\\");
+    } else {
+      throw new TeddyException("doSplit(): illegal pattern type: " + expr.toString());
+    }
+
+    for (rowno = 0; rowno < objGrid.size(); rowno++) {
+      Row row = objGrid.get(rowno);
+      Row newRow = new Row();
+      for (colno = 0; colno < colCnt; colno++) {
+        newRow.add(colNames.get(colno), row.get(colno));
+      }
+
+      String targetStr = (String)row.get(targetColno);
+      Pattern pattern = Pattern.compile(patternStr);
+      Matcher matcher = pattern.matcher(targetStr);
+      int curPos = 0;
+      boolean lastSaved = false;
+      for (int i = 0; i <= limit; i++) {
+        if (matcher.find()) {
+          String newColData = targetStr.substring(curPos, matcher.start());
+          curPos = matcher.end();
+          newRow.add(newColNames.get(i), newColData);
+        } else {
+          if (!lastSaved) {
+            String newColData = targetStr.substring(curPos);
+            newRow.add(newColNames.get(i), newColData);
+            lastSaved = true;
+          } else {
+            newRow.add(newColNames.get(i), "");
+          }
+        }
+      }
+      newDf.objGrid.add(newRow);
+    }
+
     return newDf;
   }
 }
