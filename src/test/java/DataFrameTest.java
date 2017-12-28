@@ -470,4 +470,56 @@ public class DataFrameTest {
     newDf = newDf.doSplit((Split)rule);
     newDf.show();
   }
+
+  @Test
+  public void test_aggregate_sum() throws IOException, TeddyException {
+    DataFrame contract = new DataFrame();
+    contract.setGrid(grids.get("contract"));
+    contract = prepare_contract(contract);
+    contract.show();
+
+    String ruleString = "aggregate value: 'sum(pcode4)' group: pcode1, pcode2";
+    Rule rule = new RuleVisitorParser().parse(ruleString);
+    DataFrame newDf = contract.doAggregate((Aggregate)rule);
+    newDf.show();
+  }
+
+  @Test
+  public void test_aggregate_count() throws IOException, TeddyException {
+    DataFrame contract = new DataFrame();
+    contract.setGrid(grids.get("contract"));
+    contract = prepare_contract(contract);
+    contract.show();
+
+    String ruleString = "aggregate value: 'count()' group: pcode1, pcode2";
+    Rule rule = new RuleVisitorParser().parse(ruleString);
+    DataFrame newDf = contract.doAggregate((Aggregate)rule);
+    newDf.show();
+  }
+
+  @Test
+  public void test_aggregate_avg() throws IOException, TeddyException {
+    DataFrame contract = new DataFrame();
+    contract.setGrid(grids.get("contract"));
+    contract = prepare_contract(contract);
+    contract.show();
+
+    String ruleString = "aggregate value: 'avg(pcode4)' group: pcode1, pcode2";
+    Rule rule = new RuleVisitorParser().parse(ruleString);
+    DataFrame newDf = contract.doAggregate((Aggregate)rule);
+    newDf.show();
+  }
+
+  @Test
+  public void test_aggregate_min_max() throws IOException, TeddyException {
+    DataFrame contract = new DataFrame();
+    contract.setGrid(grids.get("contract"));
+    contract = prepare_contract(contract);
+    contract.show();
+
+    String ruleString = "aggregate value: 'min(detail_store_code)', 'max(detail_store_code)' group: pcode1, pcode2";
+    Rule rule = new RuleVisitorParser().parse(ruleString);
+    DataFrame newDf = contract.doAggregate((Aggregate)rule);
+    newDf.show();
+  }
 }

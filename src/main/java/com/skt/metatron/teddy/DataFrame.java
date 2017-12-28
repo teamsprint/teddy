@@ -3,6 +3,7 @@ package com.skt.metatron.teddy;
 import com.skt.metatron.discovery.common.preparation.RuleVisitorParser;
 import com.skt.metatron.discovery.common.preparation.rule.*;
 import com.skt.metatron.discovery.common.preparation.rule.expr.*;
+import org.apache.commons.collections.map.HashedMap;
 import org.codehaus.jackson.JsonParseException;
 import org.codehaus.jackson.JsonProcessingException;
 import org.codehaus.jackson.map.JsonMappingException;
@@ -29,6 +30,14 @@ public class DataFrame implements Serializable {
     ARRAY,
     MAP,
     INVALID
+  }
+
+  enum AggrType {
+    COUNT,
+    SUM,
+    AVG,
+    MIN,
+    MAX
   }
 
   private static TYPE getType(ExprType exprType) {
@@ -977,6 +986,228 @@ public class DataFrame implements Serializable {
           }
         }
       }
+      newDf.objGrid.add(newRow);
+    }
+
+    return newDf;
+  }
+
+  public DataFrame doAggregate(Aggregate aggregate) throws TeddyException {
+    Expression groupByColExpr = aggregate.getGroup();
+    Expression aggrValueExpr = aggregate.getValue();
+    List<String> groupByColNames = new ArrayList<>();
+    List<Integer> groupByColnos = new ArrayList<>();
+    List<String> targetExprStrs = new ArrayList<>();      // sum(x), avg(x), count() 등의 expression string
+    List<Integer> targetAggrColnos = new ArrayList<>();   // 각 aggrValue는 1개의 target column을 가짐
+    List<AggrType> targetAggrTypes = new ArrayList<>();
+    List<String> resultColNames = new ArrayList<>();
+    List<TYPE> resultColTypes = new ArrayList<>();
+    Map<Object, Object> groupByBuckets = new HashMap<>();
+    int rowno, colno;
+
+    // group by expression -> group by colnames
+    if (groupByColExpr instanceof Identifier.IdentifierExpr) {
+      groupByColNames.add(((Identifier.IdentifierExpr) groupByColExpr).getValue());
+    } else if (groupByColExpr instanceof Identifier.IdentifierArrayExpr) {
+      groupByColNames.addAll(((Identifier.IdentifierArrayExpr) groupByColExpr).getValue());
+    } else {
+      throw new TeddyException("doAggregate(): invalid group by column expression type: " + groupByColExpr.toString());
+    }
+
+    // aggregation value expression -> aggregation expression strings
+    if (aggrValueExpr instanceof Constant.StringExpr) {
+      targetExprStrs.add((String)(((Constant.StringExpr) aggrValueExpr).getValue()));
+    } else if (aggrValueExpr instanceof Constant.ArrayExpr) {
+      for (Object obj : ((Constant.ArrayExpr) aggrValueExpr).getValue()) {
+        String strAggrValue = (String)obj;
+        targetExprStrs.add(strAggrValue);
+      }
+    } else {
+      throw new TeddyException("doAggregate(): invalid aggregation value expression type: " + aggrValueExpr.toString());
+    }
+
+    // aggregation expression strings -> target aggregation types, target colnos, result colnames, result coltypes
+    for (int i = 0; i < targetExprStrs.size(); i++) {
+      String targetExprStr = stripSingleQuote(targetExprStrs.get(i));
+      AggrType aggrType;
+      String targetColName;
+      if (targetExprStr.toUpperCase().startsWith("COUNT")) {
+        aggrType = AggrType.COUNT;
+        resultColNames.add(checkNewColName("count", true));
+        resultColTypes.add(TYPE.LONG);
+      } else {
+        Pattern pattern = Pattern.compile("\\w+\\((\\w+)\\)");
+        Matcher matcher = pattern.matcher(targetExprStr);
+        if (matcher.find() == false) {
+          throw new TeddyException("doAggregate(): invalid aggregation function expression: " + targetExprStr.toString());
+        }
+
+        if (targetExprStr.toUpperCase().startsWith(AggrType.SUM.name())) {
+          aggrType = AggrType.SUM;
+        } else if (targetExprStr.toUpperCase().startsWith(AggrType.AVG.name())) {
+          aggrType = AggrType.AVG;
+        } else if (targetExprStr.toUpperCase().startsWith(AggrType.MIN.name())) {
+          aggrType = AggrType.MIN;
+        } else if (targetExprStr.toUpperCase().startsWith(AggrType.MAX.name())) {
+          aggrType = AggrType.MAX;
+        } else {
+          throw new TeddyException("doAggregate(): aggregation column not found: " + targetExprStr);
+        }
+
+        targetColName = matcher.group(1);
+        for (colno = 0; colno < colCnt; colno++) {
+          String colName = colNames.get(colno);
+          if (colName.equals(targetColName)) {
+            targetAggrColnos.add(colno);
+            resultColNames.add(checkNewColName(aggrType.name().toLowerCase() + "_" + colName, true));
+            TYPE colType = colTypes.get(colno);
+            if (colType == TYPE.DOUBLE) {
+              resultColTypes.add(colType);
+            } else if (colType == TYPE.LONG) {
+              resultColTypes.add(aggrType == AggrType.AVG ? TYPE.DOUBLE : TYPE.LONG);
+            } else {
+              throw new TeddyException("doAggregate(): invalid aggregation column type: " + colType);
+            }
+            break;
+          }
+        }
+        if (colno == colCnt) {
+          throw new TeddyException("doAggregate(): aggregation target column not found: " + targetColName);
+        }
+      }
+      targetAggrTypes.add(aggrType);
+    }
+
+    DataFrame newDf = new DataFrame();
+    newDf.colCnt = groupByColNames.size() + targetAggrTypes.size();
+
+    // 지금 twinkle 코드에 맞춰서 aggregation 값들을 먼저 배치
+    for (int i = 0; i < resultColNames.size(); i++) {
+      newDf.colNames.add(resultColNames.get(i));
+      newDf.colTypes.add(resultColTypes.get(i));
+    }
+
+
+    // group by colnames existence check & append to result colnames/coltypes
+    for (int i = 0; i < groupByColNames.size(); i++) {
+      String groupByColName = groupByColNames.get(i);
+      for (colno = 0; colno < colCnt; colno++) {
+        if (colNames.get(colno).equals(groupByColName)) {
+          groupByColnos.add(colno);
+          newDf.colNames.add(groupByColName);
+          newDf.colTypes.add(colTypes.get(colno));
+          break;
+        }
+      }
+      if (colno == colCnt) {
+        throw new TeddyException("doAggregate(): group by column not found: " + groupByColName);
+      }
+    }
+
+    for (rowno = 0; rowno < objGrid.size(); rowno++) {
+      Row row = objGrid.get(rowno);
+      List<Object> groupByKey = new ArrayList<>();
+      for (int i = 0; i < groupByColnos.size(); i++) {
+        groupByKey.add(row.get(groupByColnos.get(i)));
+      }
+
+      if (groupByBuckets.containsKey(groupByKey)) {
+        List<Object> aggregatedValues = (List<Object>) groupByBuckets.get(groupByKey);
+        for (int j = 0; j < targetAggrTypes.size(); j++) {
+          if (targetAggrTypes.get(j) == AggrType.AVG) {
+            Map<String, Object> avgObj = (Map<String, Object>) aggregatedValues.get(j);
+            avgObj.put("count", (Long)avgObj.get("count") + 1);
+            if (resultColTypes.get(j) == TYPE.LONG) {
+              avgObj.put("sum", (Long)avgObj.get("sum") + (Long)row.get(targetAggrColnos.get(j)));
+            } else {
+              if (colTypes.get(targetAggrColnos.get(j)) == TYPE.LONG) {
+                avgObj.put("sum", (Double)avgObj.get("sum") + Double.valueOf((Long)row.get(targetAggrColnos.get(j))));
+              } else {
+                avgObj.put("sum", (Double) avgObj.get("sum") + (Double) row.get(targetAggrColnos.get(j)));
+              }
+            }
+            aggregatedValues.set(j, avgObj);
+          }
+          else if (targetAggrTypes.get(j) == AggrType.COUNT) {
+            aggregatedValues.set(j, (Long)aggregatedValues.get(j) + 1);
+          }
+          else if (targetAggrTypes.get(j) == AggrType.SUM) {
+            if (resultColTypes.get(j) == TYPE.LONG) {
+              aggregatedValues.set(j, (Long)aggregatedValues.get(j) + (Long)row.get(targetAggrColnos.get(j)));
+            } else {
+              aggregatedValues.set(j, (Double)aggregatedValues.get(j) + (Double)row.get(targetAggrColnos.get(j)));
+            }
+          }
+          else if (targetAggrTypes.get(j) == AggrType.MIN) {
+            if (resultColTypes.get(j) == TYPE.LONG) {
+              Long newValue = (Long)row.get(targetAggrColnos.get(j));
+              if (newValue < (Long)aggregatedValues.get(j)) {
+                aggregatedValues.set(j, newValue);
+              }
+            } else {
+              Double newValue = (Double)row.get(targetAggrColnos.get(j));
+              if (newValue < (Double)aggregatedValues.get(j)) {
+                aggregatedValues.set(j, newValue);
+              }
+            }
+          }
+          else if (targetAggrTypes.get(j) == AggrType.MAX) {
+            if (resultColTypes.get(j) == TYPE.LONG) {
+              Long newValue = (Long)row.get(targetAggrColnos.get(j));
+              if (newValue > (Long)aggregatedValues.get(j)) {
+                aggregatedValues.set(j, newValue);
+              }
+            } else {
+              Double newValue = (Double)row.get(targetAggrColnos.get(j));
+              if (newValue > (Double)aggregatedValues.get(j)) {
+                aggregatedValues.set(j, newValue);
+              }
+            }
+          }
+        }
+        groupByBuckets.put(groupByKey, aggregatedValues);
+      } // end of containes groupByKey
+      else {  // belows are for new groupByKey
+        List<Object> aggregatedValues = new ArrayList<>();
+        for (int j = 0; j < targetAggrTypes.size(); j++) {
+          if (targetAggrTypes.get(j) == AggrType.AVG) {
+            Map<String, Object> avgObj = new HashedMap();
+            avgObj.put("count", Long.valueOf(1));
+            if (colTypes.get(targetAggrColnos.get(j)) == TYPE.LONG) {
+              avgObj.put("sum", Double.valueOf((Long)row.get(targetAggrColnos.get(j))));
+            } else {
+              avgObj.put("sum", row.get(targetAggrColnos.get(j)));
+            }
+            aggregatedValues.add(avgObj);
+          }
+          else if (targetAggrTypes.get(j) == AggrType.COUNT) {
+            aggregatedValues.add(Long.valueOf(1));
+          }
+          else {
+            aggregatedValues.add(row.get(targetAggrColnos.get(j)));
+          }
+        }
+        groupByBuckets.put(groupByKey, aggregatedValues);
+      }
+    }
+
+    for (Map.Entry<Object, Object> elem : groupByBuckets.entrySet()) {
+      Row newRow = new Row();
+      List<Object> aggregatedValues = (List<Object>)elem.getValue();
+      for (int i = 0; i < aggregatedValues.size(); i++) {
+        if (targetAggrTypes.get(i) == AggrType.AVG) {
+          Map<String, Object> avgObj = (Map<String, Object>) aggregatedValues.get(i);
+          newRow.add(resultColNames.get(i), (Double)avgObj.get("sum") / Double.valueOf((Long)avgObj.get("count")));
+        } else {
+          newRow.add(resultColNames.get(i), aggregatedValues.get(i));
+        }
+      }
+
+      int i = 0;
+      for (Object groupByValue : (List<Object>) elem.getKey()) {
+        newRow.add(groupByColNames.get(i++), groupByValue);
+      }
+
       newDf.objGrid.add(newRow);
     }
 
