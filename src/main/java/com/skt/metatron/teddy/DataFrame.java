@@ -2,6 +2,7 @@ package com.skt.metatron.teddy;
 
 import com.skt.metatron.discovery.common.preparation.RuleVisitorParser;
 import com.skt.metatron.discovery.common.preparation.rule.*;
+import com.skt.metatron.discovery.common.preparation.rule.Set;
 import com.skt.metatron.discovery.common.preparation.rule.expr.*;
 import org.apache.commons.collections.map.HashedMap;
 import org.codehaus.jackson.JsonParseException;
@@ -13,10 +14,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -905,7 +903,6 @@ public class DataFrame implements Serializable {
     Expression targetExpr = merge.getCol();
     String with = stripSingleQuote(merge.getWith());
     String as = stripSingleQuote(merge.getAs());
-    List<Integer> targetColnos = new ArrayList<>();
     int rowno, colno;
 
     String newColName = checkNewColName(as, true);
@@ -1325,5 +1322,108 @@ public class DataFrame implements Serializable {
     }
 
     return aggregatedDf;
+  }
+
+
+  public DataFrame doSort(Sort sort) throws TeddyException {
+    Expression orderByColExpr = sort.getOrder();
+    List<String> orderByColNames = new ArrayList<>();
+    int colno;
+    List<Integer> orderByColnos = new ArrayList<>();
+
+    // order by expression -> order by colnames
+    if (orderByColExpr instanceof Identifier.IdentifierExpr) {
+      orderByColNames.add(((Identifier.IdentifierExpr) orderByColExpr).getValue());
+    } else if (orderByColExpr instanceof Identifier.IdentifierArrayExpr) {
+      orderByColNames.addAll(((Identifier.IdentifierArrayExpr) orderByColExpr).getValue());
+    } else {
+      throw new TeddyException("doSort(): invalid order by column expression type: " + orderByColExpr.toString());
+    }
+
+    DataFrame newDf = new DataFrame();
+    newDf.colCnt = colCnt;
+    newDf.colNames.addAll(colNames);
+    newDf.colTypes.addAll(colTypes);
+
+    for (Row row : objGrid) {
+      newDf.objGrid.add(row);
+    }
+
+    for (Row row : newDf.objGrid) {
+      row.cmpKeyIdxs = new ArrayList<>();
+      row.cmpKeyTypes = new ArrayList<>();
+    }
+
+    // order by colnames existence check & append to result colnames/coltypes
+    for (int i = 0; i < orderByColNames.size(); i++) {
+      String orderByColName = orderByColNames.get(i);
+      for (colno = 0; colno < colCnt; colno++) {
+        if (colNames.get(colno).equals(orderByColName)) {
+          orderByColnos.add(colno);
+          for (Row row : newDf.objGrid) {
+            row.cmpKeyIdxs.add(colno);
+            row.cmpKeyTypes.add(colTypes.get(colno));
+          }
+          break;
+        }
+      }
+      if (colno == colCnt) {
+        throw new TeddyException("doAggregateInternal(): order by column not found: " + orderByColName);
+      }
+    }
+
+    newDf.objGrid.sort(new Comparator<Row>() {
+      @Override
+      public int compare(Row row1, Row row2) {
+        int result;
+        for (int i = 0; i < row1.cmpKeyIdxs.size(); i++) {
+          Object obj1 = row1.get(row1.cmpKeyIdxs.get(i));
+          Object obj2 = row2.get(row2.cmpKeyIdxs.get(i));
+
+          if (obj1 == null) {
+            return -1;
+          } else if (obj2 == null) {
+            return 1;
+          } else {
+            TYPE colType = row1.cmpKeyTypes.get(i);
+            switch(colType) {
+              case STRING:
+                result = ((String) obj1).compareTo((String) obj2);
+                if (result != 0) {
+                  return result;
+                }
+                break;
+              case BOOLEAN:
+                result = ((Boolean) obj1).compareTo((Boolean) obj2);
+                if (result != 0) {
+                  return result;
+                }
+                break;
+              case LONG:
+                result = ((Long) obj1).compareTo((Long) obj2);
+                if (result != 0) {
+                  return result;
+                }
+                break;
+              case DOUBLE:
+                result = ((Double) obj1).compareTo((Double) obj2);
+                if (result != 0) {
+                  return result;
+                }
+                break;
+              default:
+                try {
+                  throw new TeddyException("doSort(): invalid column type: " + colType.name());
+                } catch (TeddyException e) {
+                  e.printStackTrace();
+                }
+            }
+          }
+        }
+        return 0;
+      }
+    });
+
+    return newDf;
   }
 }

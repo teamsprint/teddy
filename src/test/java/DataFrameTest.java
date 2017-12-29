@@ -523,4 +523,30 @@ public class DataFrameTest {
     DataFrame newDf = contract.doAggregate((Aggregate)rule);
     newDf.show();
   }
+
+  @Test
+  public void test_sort() throws IOException, TeddyException {
+    DataFrame contract = new DataFrame();
+    contract.setGrid(grids.get("contract"));
+    contract = prepare_contract(contract);
+    contract.show();
+
+    String ruleString = "sort order: detail_store_code";
+    Rule rule = new RuleVisitorParser().parse(ruleString);
+    DataFrame newDf = contract.doSort((Sort)rule);
+    newDf.show(100);
+  }
+
+  @Test
+  public void test_sort_multi() throws IOException, TeddyException {
+    DataFrame contract = new DataFrame();
+    contract.setGrid(grids.get("contract"));
+    contract = prepare_contract(contract);
+    contract.show();
+
+    String ruleString = "sort order: pcode1, pcode2, pcode3";
+    Rule rule = new RuleVisitorParser().parse(ruleString);
+    DataFrame newDf = contract.doSort((Sort)rule);
+    newDf.show(1000);
+  }
 }

@@ -12,6 +12,9 @@ public class Row implements Expr.NumericBinding {
   Map<String, Integer> nameIdxs;
   int colCnt;
 
+  List<Integer> cmpKeyIdxs;
+  List<DataFrame.TYPE> cmpKeyTypes;
+
   public Row() {
     objCols = new ArrayList<>();
     nameIdxs = new HashMap<>();
