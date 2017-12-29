@@ -1030,39 +1030,14 @@ public class DataFrame implements Serializable {
     return newDf;
   }
 
-  public DataFrame doAggregate(Aggregate aggregate) throws TeddyException {
-    Expression groupByColExpr = aggregate.getGroup();
-    Expression aggrValueExpr = aggregate.getValue();
-    List<String> groupByColNames = new ArrayList<>();
+  public DataFrame doAggregateInternal(List<String> groupByColNames, List<String> targetExprStrs) throws TeddyException {
     List<Integer> groupByColnos = new ArrayList<>();
-    List<String> targetExprStrs = new ArrayList<>();      // sum(x), avg(x), count() 등의 expression string
     List<Integer> targetAggrColnos = new ArrayList<>();   // 각 aggrValue는 1개의 target column을 가짐
     List<AggrType> targetAggrTypes = new ArrayList<>();
     List<String> resultColNames = new ArrayList<>();
     List<TYPE> resultColTypes = new ArrayList<>();
     Map<Object, Object> groupByBuckets = new HashMap<>();
     int rowno, colno;
-
-    // group by expression -> group by colnames
-    if (groupByColExpr instanceof Identifier.IdentifierExpr) {
-      groupByColNames.add(((Identifier.IdentifierExpr) groupByColExpr).getValue());
-    } else if (groupByColExpr instanceof Identifier.IdentifierArrayExpr) {
-      groupByColNames.addAll(((Identifier.IdentifierArrayExpr) groupByColExpr).getValue());
-    } else {
-      throw new TeddyException("doAggregate(): invalid group by column expression type: " + groupByColExpr.toString());
-    }
-
-    // aggregation value expression -> aggregation expression strings
-    if (aggrValueExpr instanceof Constant.StringExpr) {
-      targetExprStrs.add((String)(((Constant.StringExpr) aggrValueExpr).getValue()));
-    } else if (aggrValueExpr instanceof Constant.ArrayExpr) {
-      for (Object obj : ((Constant.ArrayExpr) aggrValueExpr).getValue()) {
-        String strAggrValue = (String)obj;
-        targetExprStrs.add(strAggrValue);
-      }
-    } else {
-      throw new TeddyException("doAggregate(): invalid aggregation value expression type: " + aggrValueExpr.toString());
-    }
 
     // aggregation expression strings -> target aggregation types, target colnos, result colnames, result coltypes
     for (int i = 0; i < targetExprStrs.size(); i++) {
@@ -1077,7 +1052,7 @@ public class DataFrame implements Serializable {
         Pattern pattern = Pattern.compile("\\w+\\((\\w+)\\)");
         Matcher matcher = pattern.matcher(targetExprStr);
         if (matcher.find() == false) {
-          throw new TeddyException("doAggregate(): invalid aggregation function expression: " + targetExprStr.toString());
+          throw new TeddyException("doAggregateInternal(): invalid aggregation function expression: " + targetExprStr.toString());
         }
 
         if (targetExprStr.toUpperCase().startsWith(AggrType.SUM.name())) {
@@ -1089,7 +1064,7 @@ public class DataFrame implements Serializable {
         } else if (targetExprStr.toUpperCase().startsWith(AggrType.MAX.name())) {
           aggrType = AggrType.MAX;
         } else {
-          throw new TeddyException("doAggregate(): aggregation column not found: " + targetExprStr);
+          throw new TeddyException("doAggregateInternal(): aggregation column not found: " + targetExprStr);
         }
 
         targetColName = matcher.group(1);
@@ -1104,13 +1079,13 @@ public class DataFrame implements Serializable {
             } else if (colType == TYPE.LONG) {
               resultColTypes.add(aggrType == AggrType.AVG ? TYPE.DOUBLE : TYPE.LONG);
             } else {
-              throw new TeddyException("doAggregate(): invalid aggregation column type: " + colType);
+              throw new TeddyException("doAggregateInternal(): invalid aggregation column type: " + colType);
             }
             break;
           }
         }
         if (colno == colCnt) {
-          throw new TeddyException("doAggregate(): aggregation target column not found: " + targetColName);
+          throw new TeddyException("doAggregateInternal(): aggregation target column not found: " + targetColName);
         }
       }
       targetAggrTypes.add(aggrType);
@@ -1138,7 +1113,7 @@ public class DataFrame implements Serializable {
         }
       }
       if (colno == colCnt) {
-        throw new TeddyException("doAggregate(): group by column not found: " + groupByColName);
+        throw new TeddyException("doAggregateInternal(): group by column not found: " + groupByColName);
       }
     }
 
@@ -1250,5 +1225,105 @@ public class DataFrame implements Serializable {
     }
 
     return newDf;
+  }
+
+  public DataFrame doAggregate(Aggregate aggregate) throws TeddyException {
+    Expression groupByColExpr = aggregate.getGroup();
+    Expression aggrValueExpr = aggregate.getValue();
+    List<String> groupByColNames = new ArrayList<>();
+    List<String> targetExprStrs = new ArrayList<>();      // sum(x), avg(x), count() 등의 expression string
+
+    // group by expression -> group by colnames
+    if (groupByColExpr instanceof Identifier.IdentifierExpr) {
+      groupByColNames.add(((Identifier.IdentifierExpr) groupByColExpr).getValue());
+    } else if (groupByColExpr instanceof Identifier.IdentifierArrayExpr) {
+      groupByColNames.addAll(((Identifier.IdentifierArrayExpr) groupByColExpr).getValue());
+    } else {
+      throw new TeddyException("doAggregate(): invalid group by column expression type: " + groupByColExpr.toString());
+    }
+
+    // aggregation value expression -> aggregation expression strings
+    if (aggrValueExpr instanceof Constant.StringExpr) {
+      targetExprStrs.add((String)(((Constant.StringExpr) aggrValueExpr).getValue()));
+    } else if (aggrValueExpr instanceof Constant.ArrayExpr) {
+      for (Object obj : ((Constant.ArrayExpr) aggrValueExpr).getValue()) {
+        String strAggrValue = (String)obj;
+        targetExprStrs.add(strAggrValue);
+      }
+    } else {
+      throw new TeddyException("doAggregate(): invalid aggregation value expression type: " + aggrValueExpr.toString());
+    }
+
+    return doAggregateInternal(groupByColNames, targetExprStrs);
+  }
+
+  public DataFrame doPivot(Pivot pivot) throws TeddyException {
+    Expression targetColExpr = pivot.getCol();
+    Expression groupByColExpr = pivot.getGroup();
+    Expression aggrValueExpr = pivot.getValue();
+    List<String> targetColNames = new ArrayList<>();
+    List<String> groupByColNames = new ArrayList<>();
+    List<String> targetExprStrs = new ArrayList<>();      // sum(x), avg(x), count() 등의 expression string
+    int rowno, colno;
+
+    // group by expression -> group by colnames
+    if (groupByColExpr instanceof Identifier.IdentifierExpr) {
+      groupByColNames.add(((Identifier.IdentifierExpr) groupByColExpr).getValue());
+    } else if (groupByColExpr instanceof Identifier.IdentifierArrayExpr) {
+      groupByColNames.addAll(((Identifier.IdentifierArrayExpr) groupByColExpr).getValue());
+    } else {
+      throw new TeddyException("doAggregate(): invalid group by column expression type: " + groupByColExpr.toString());
+    }
+
+    // pivot target (to-be-column) column expression -> group by colnames
+    if (targetColExpr instanceof Identifier.IdentifierExpr) {
+      groupByColNames.add(((Identifier.IdentifierExpr) targetColExpr).getValue());
+    } else if (targetColExpr instanceof Identifier.IdentifierArrayExpr) {
+      groupByColNames.addAll(((Identifier.IdentifierArrayExpr) targetColExpr).getValue());
+    } else {
+      throw new TeddyException("doAggregate(): invalid pivot target column expression type: " + targetColExpr.toString());
+    }
+
+    // aggregation value expression -> aggregation expression strings
+    if (aggrValueExpr instanceof Constant.StringExpr) {
+      targetExprStrs.add((String) (((Constant.StringExpr) aggrValueExpr).getValue()));
+    } else if (aggrValueExpr instanceof Constant.ArrayExpr) {
+      for (Object obj : ((Constant.ArrayExpr) aggrValueExpr).getValue()) {
+        String strAggrValue = (String) obj;
+        targetExprStrs.add(strAggrValue);
+      }
+    } else {
+      throw new TeddyException("doAggregate(): invalid aggregation value expression type: " + aggrValueExpr.toString());
+    }
+
+    List<String> mergedGroupByColNames = new ArrayList<>();
+    mergedGroupByColNames.addAll(groupByColNames);
+    mergedGroupByColNames.addAll(targetColNames);
+
+    DataFrame aggregatedDf = doAggregateInternal(mergedGroupByColNames, targetExprStrs);
+    DataFrame pivotedDf = new DataFrame();
+
+    // <aggregatedDf>
+    // +----------+----------+--------------+--------------+------------+------------+
+    // | groupBy1 | groupBy2 | pivotTarget1 | pivotTarget2 | aggrValue1 | aggrValue2 |
+    // +----------+----------+--------------+--------------+------------+------------+
+    // | priority |  status  |     year     |     month    | sum(price) |   count()  |
+    // +----------+----------+--------------+--------------+------------+------------+
+    // <pivotedDf>
+    // +----------+--------+-------------------+-------------------+-----+-------------------+-------------------+-----+
+    // | priority | status | sum_price_1992_01 | sum_price_1992_02 | ... | row_count_1992_01 | row_count_1992_02 | ... |
+    // +----------+--------+-------------------+-------------------+-----+-------------------+-------------------+-----+
+
+    pivotedDf.colCnt = groupByColNames.size();
+    pivotedDf.colNames.addAll(groupByColNames);
+    for (String colName : groupByColNames) {
+      pivotedDf.colTypes.add(getTypeOfColumn(colName));
+    }
+
+    for (rowno = 0; rowno < aggregatedDf.colCnt; rowno++) {
+      Row row = aggregatedDf.objGrid.get(rowno);
+    }
+
+    return aggregatedDf;
   }
 }
