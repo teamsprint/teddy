@@ -29,6 +29,7 @@ public class DataFrame implements Serializable {
     STRING,
     ARRAY,
     MAP,
+    BOOLEAN,
     INVALID
   }
 
@@ -51,6 +52,16 @@ public class DataFrame implements Serializable {
     }
     assert false : exprType;
     return TYPE.INVALID;
+  }
+
+  private TYPE getTypeOfColumn(String colName) throws TeddyException {
+    int i;
+    for (i = 0; i < colNames.size(); i++) {
+      if (colNames.get(i).equals(colName)) {
+        return colTypes.get(i);
+      }
+    }
+    throw new TeddyException("getTypeOfColumn(): column not found: " + colName);
   }
 
   private int colCnt;
@@ -319,11 +330,24 @@ public class DataFrame implements Serializable {
       String msg = String.format("decideType(): type mismatch: left=%s right=%s expr=%s", left, right, expr);
       throw new TeddyException(msg);
     }
+    // Function Operation
+    else if (expr instanceof Expr.FunctionExpr) {
+      List<Expr> args = ((Expr.FunctionExpr) expr).getArgs();
+      if (args.size() == 1) {
+        resultType = TYPE.BOOLEAN;
+      } else if (args.size() == 3) {
+        if (args.get(1) instanceof Constant.StringExpr && args.get(2) instanceof Constant.StringExpr) {
+          return TYPE.STRING;
+        }
+      } else {
+        throw new TeddyException("decideType(): invalid function arguments: " + args.size());
+      }
+    }
     System.out.println(String.format("decideType(): resultType=%s expr=%s", resultType, expr));
     return resultType;
   }
 
-  private Object eval(int rowno, Expression expr) throws TeddyException {
+  private Object eval(Expression expr, int rowno) throws TeddyException {
     TYPE resultType = TYPE.INVALID;
     Object resultObj = null;
     String errmsg;
@@ -359,9 +383,23 @@ public class DataFrame implements Serializable {
     }
     // Binary Operation
     else if (expr instanceof Expr.BinaryNumericOpExprBase) {
-      ExprEval result = ((Expr.BinaryNumericOpExprBase) expr).eval(objGrid.get(rowno));
-      resultObj = result.value();
+      ExprEval binOpEval = ((Expr.BinaryNumericOpExprBase) expr).eval(objGrid.get(rowno));
+      resultType = getType(binOpEval.type());
+      resultObj = binOpEval.value();
     }
+    // Function Operation
+    else if (expr instanceof Expr.FunctionExpr) {
+      try {
+        ExprEval funcEval = ((Expr.FunctionExpr) expr).eval(objGrid.get(rowno));
+        resultType = getType(funcEval.type());
+        resultObj = funcEval.value();
+      } catch (AssertionError e) {
+        String msg = "eval(): unhandled error in function expression";
+        LOGGER.error(msg);
+        throw new TeddyException(msg);
+      }
+    }
+
     System.out.println(String.format("eval(): resultType=%s resultObj=%s expr=%s", resultType, resultObj.toString(), expr));
     return resultObj;
   }
@@ -461,7 +499,7 @@ public class DataFrame implements Serializable {
       Row newRow = new Row();
       for (int colno = 0; colno < newDf.colCnt; colno++) {
         if (colno == targetColNo) {
-          newRow.add(targetColName, eval(rowno, expr));
+          newRow.add(targetColName, eval(expr, rowno));
         } else {
           newRow.add(colNames.get(colno), row.get(colno));
         }

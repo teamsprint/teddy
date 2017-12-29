@@ -177,8 +177,6 @@ public class DataFrameTest {
     df.show();
 
     String ruleString = "set col: speed value: speed + 1000";
-    String jsonRuleString = df.parseRuleString(ruleString);
-    System.out.println(jsonRuleString);
     Rule rule = new RuleVisitorParser().parse(ruleString);
     DataFrame newDf = df.doSet((Set)rule);
     newDf.show();
@@ -192,8 +190,6 @@ public class DataFrameTest {
     df.show();
 
     String ruleString = "set col: speed value: speed - 300";
-    String jsonRuleString = df.parseRuleString(ruleString);
-    System.out.println(jsonRuleString);
     Rule rule = new RuleVisitorParser().parse(ruleString);
     DataFrame newDf = df.doSet((Set)rule);
     newDf.show();
@@ -207,8 +203,19 @@ public class DataFrameTest {
     df = prepare_common(df);
 
     String ruleString = "set col: speed value: speed * 10";
-    String jsonRuleString = df.parseRuleString(ruleString);
-    System.out.println(jsonRuleString);
+    Rule rule = new RuleVisitorParser().parse(ruleString);
+    DataFrame newDf = df.doSet((Set)rule);
+    newDf.show();
+  }
+
+  @Test
+  public void test_set_if() throws IOException, TeddyException {
+    DataFrame df = new DataFrame();
+    df.setGrid(grids.get("sample"));
+    df.show();
+    df = prepare_common(df);
+
+    String ruleString = "set col: name value: if(length(name) > 5, '11', '10')";
     Rule rule = new RuleVisitorParser().parse(ruleString);
     DataFrame newDf = df.doSet((Set)rule);
     newDf.show();
@@ -222,8 +229,6 @@ public class DataFrameTest {
     df.show();
 
     String ruleString = "derive as: Turbo value: speed * 10";
-    String jsonRuleString = df.parseRuleString(ruleString);
-    System.out.println(jsonRuleString);
     Rule rule = new RuleVisitorParser().parse(ruleString);
     DataFrame newDf = df.doDerive((Derive)rule);
     newDf.show();
@@ -237,8 +242,6 @@ public class DataFrameTest {
     df.show();
 
     String ruleString = "set col: speed value: speed / 10";
-    String jsonRuleString = df.parseRuleString(ruleString);
-    System.out.println(jsonRuleString);
     Rule rule = new RuleVisitorParser().parse(ruleString);
     DataFrame newDf = df.doSet((Set)rule);
     newDf.show();
@@ -252,8 +255,6 @@ public class DataFrameTest {
     df.show();
 
     String ruleString = "set col: speed value: speed * '10'";
-    String jsonRuleString = df.parseRuleString(ruleString);
-    System.out.println(jsonRuleString);
     Rule rule = new RuleVisitorParser().parse(ruleString);
 
     try {
