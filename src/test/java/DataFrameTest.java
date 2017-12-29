@@ -549,4 +549,17 @@ public class DataFrameTest {
     DataFrame newDf = contract.doSort((Sort)rule);
     newDf.show(1000);
   }
+
+  @Test
+  public void test_pivot_sum() throws IOException, TeddyException {
+    DataFrame contract = new DataFrame();
+    contract.setGrid(grids.get("contract"));
+    contract = prepare_contract(contract);
+    contract.show();
+
+    String ruleString = "pivot col: pcode1, pcode2 value: 'sum(detail_store_code)', 'count()' group: pcode3, pcode4";
+    Rule rule = new RuleVisitorParser().parse(ruleString);
+    DataFrame newDf = contract.doPivot((Pivot) rule);
+    newDf.show();
+  }
 }

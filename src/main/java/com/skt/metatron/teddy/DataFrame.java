@@ -1258,7 +1258,7 @@ public class DataFrame implements Serializable {
     Expression targetColExpr = pivot.getCol();
     Expression groupByColExpr = pivot.getGroup();
     Expression aggrValueExpr = pivot.getValue();
-    List<String> targetColNames = new ArrayList<>();
+    List<String> pivotColNames = new ArrayList<>();
     List<String> groupByColNames = new ArrayList<>();
     List<String> targetExprStrs = new ArrayList<>();      // sum(x), avg(x), count() 등의 expression string
     int rowno, colno;
@@ -1269,16 +1269,16 @@ public class DataFrame implements Serializable {
     } else if (groupByColExpr instanceof Identifier.IdentifierArrayExpr) {
       groupByColNames.addAll(((Identifier.IdentifierArrayExpr) groupByColExpr).getValue());
     } else {
-      throw new TeddyException("doAggregate(): invalid group by column expression type: " + groupByColExpr.toString());
+      throw new TeddyException("doPivot(): invalid group by column expression type: " + groupByColExpr.toString());
     }
 
     // pivot target (to-be-column) column expression -> group by colnames
     if (targetColExpr instanceof Identifier.IdentifierExpr) {
-      groupByColNames.add(((Identifier.IdentifierExpr) targetColExpr).getValue());
+      pivotColNames.add(((Identifier.IdentifierExpr) targetColExpr).getValue());
     } else if (targetColExpr instanceof Identifier.IdentifierArrayExpr) {
-      groupByColNames.addAll(((Identifier.IdentifierArrayExpr) targetColExpr).getValue());
+      pivotColNames.addAll(((Identifier.IdentifierArrayExpr) targetColExpr).getValue());
     } else {
-      throw new TeddyException("doAggregate(): invalid pivot target column expression type: " + targetColExpr.toString());
+      throw new TeddyException("doPivot(): invalid pivot target column expression type: " + targetColExpr.toString());
     }
 
     // aggregation value expression -> aggregation expression strings
@@ -1290,22 +1290,22 @@ public class DataFrame implements Serializable {
         targetExprStrs.add(strAggrValue);
       }
     } else {
-      throw new TeddyException("doAggregate(): invalid aggregation value expression type: " + aggrValueExpr.toString());
+      throw new TeddyException("doPivot(): invalid aggregation value expression type: " + aggrValueExpr.toString());
     }
 
     List<String> mergedGroupByColNames = new ArrayList<>();
+    mergedGroupByColNames.addAll(pivotColNames);
     mergedGroupByColNames.addAll(groupByColNames);
-    mergedGroupByColNames.addAll(targetColNames);
 
     DataFrame aggregatedDf = doAggregateInternal(mergedGroupByColNames, targetExprStrs);
     DataFrame pivotedDf = new DataFrame();
 
     // <aggregatedDf>
-    // +----------+----------+--------------+--------------+------------+------------+
-    // | groupBy1 | groupBy2 | pivotTarget1 | pivotTarget2 | aggrValue1 | aggrValue2 |
-    // +----------+----------+--------------+--------------+------------+------------+
-    // | priority |  status  |     year     |     month    | sum(price) |   count()  |
-    // +----------+----------+--------------+--------------+------------+------------+
+    // +--------------+--------------+----------+----------+------------+------------+
+    // | pivotTarget1 | pivotTarget2 | groupBy1 | groupBy2 | aggrValue1 | aggrValue2 |
+    // +--------------+--------------+----------+----------+------------+------------+
+    // |     year     |     month    | priority |  status  | sum(price) |   count()  |
+    // +--------------+--------------+----------+----------+------------+------------+
     // <pivotedDf>
     // +----------+--------+-------------------+-------------------+-----+-------------------+-------------------+-----+
     // | priority | status | sum_price_1992_01 | sum_price_1992_02 | ... | row_count_1992_01 | row_count_1992_02 | ... |
@@ -1317,28 +1317,18 @@ public class DataFrame implements Serializable {
       pivotedDf.colTypes.add(getTypeOfColumn(colName));
     }
 
-    for (rowno = 0; rowno < aggregatedDf.colCnt; rowno++) {
-      Row row = aggregatedDf.objGrid.get(rowno);
-    }
+    DataFrame tmpDf = aggregatedDf.select(pivotColNames);
+    tmpDf = tmpDf.doAggregateInternal(pivotColNames, new ArrayList<>());
+    tmpDf = tmpDf.doSortInternal(pivotColNames);
+    tmpDf.show();
+
+    // TODO: implementing
 
     return aggregatedDf;
   }
 
-
-  public DataFrame doSort(Sort sort) throws TeddyException {
-    Expression orderByColExpr = sort.getOrder();
-    List<String> orderByColNames = new ArrayList<>();
+  private DataFrame doSortInternal(List<String> orderByColNames) throws TeddyException {
     int colno;
-    List<Integer> orderByColnos = new ArrayList<>();
-
-    // order by expression -> order by colnames
-    if (orderByColExpr instanceof Identifier.IdentifierExpr) {
-      orderByColNames.add(((Identifier.IdentifierExpr) orderByColExpr).getValue());
-    } else if (orderByColExpr instanceof Identifier.IdentifierArrayExpr) {
-      orderByColNames.addAll(((Identifier.IdentifierArrayExpr) orderByColExpr).getValue());
-    } else {
-      throw new TeddyException("doSort(): invalid order by column expression type: " + orderByColExpr.toString());
-    }
 
     DataFrame newDf = new DataFrame();
     newDf.colCnt = colCnt;
@@ -1359,7 +1349,6 @@ public class DataFrame implements Serializable {
       String orderByColName = orderByColNames.get(i);
       for (colno = 0; colno < colCnt; colno++) {
         if (colNames.get(colno).equals(orderByColName)) {
-          orderByColnos.add(colno);
           for (Row row : newDf.objGrid) {
             row.cmpKeyIdxs.add(colno);
             row.cmpKeyTypes.add(colTypes.get(colno));
@@ -1425,5 +1414,21 @@ public class DataFrame implements Serializable {
     });
 
     return newDf;
+  }
+
+  public DataFrame doSort(Sort sort) throws TeddyException {
+    Expression orderByColExpr = sort.getOrder();
+    List<String> orderByColNames = new ArrayList<>();
+
+    // order by expression -> order by colnames
+    if (orderByColExpr instanceof Identifier.IdentifierExpr) {
+      orderByColNames.add(((Identifier.IdentifierExpr) orderByColExpr).getValue());
+    } else if (orderByColExpr instanceof Identifier.IdentifierArrayExpr) {
+      orderByColNames.addAll(((Identifier.IdentifierArrayExpr) orderByColExpr).getValue());
+    } else {
+      throw new TeddyException("doSort(): invalid order by column expression type: " + orderByColExpr.toString());
+    }
+
+    return doSortInternal(orderByColNames);
   }
 }
