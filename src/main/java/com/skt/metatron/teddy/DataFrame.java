@@ -14,6 +14,8 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.Serializable;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -1070,14 +1072,7 @@ public class DataFrame implements Serializable {
           if (colName.equals(targetColName)) {
             targetAggrColnos.add(colno);
             resultColNames.add(checkNewColName(aggrType.name().toLowerCase() + "_" + colName, true));
-            TYPE colType = colTypes.get(colno);
-            if (colType == TYPE.DOUBLE) {
-              resultColTypes.add(colType);
-            } else if (colType == TYPE.LONG) {
-              resultColTypes.add(aggrType == AggrType.AVG ? TYPE.DOUBLE : TYPE.LONG);
-            } else {
-              throw new TeddyException("doAggregateInternal(): invalid aggregation column type: " + colType);
-            }
+            resultColTypes.add((aggrType == AggrType.AVG) ? TYPE.DOUBLE : getTypeOfColumn(colName));
             break;
           }
         }
@@ -1096,7 +1091,6 @@ public class DataFrame implements Serializable {
       newDf.colNames.add(resultColNames.get(i));
       newDf.colTypes.add(resultColTypes.get(i));
     }
-
 
     // group by colnames existence check & append to result colnames/coltypes
     for (int i = 0; i < groupByColNames.size(); i++) {
@@ -1207,7 +1201,10 @@ public class DataFrame implements Serializable {
       for (int i = 0; i < aggregatedValues.size(); i++) {
         if (targetAggrTypes.get(i) == AggrType.AVG) {
           Map<String, Object> avgObj = (Map<String, Object>) aggregatedValues.get(i);
-          newRow.add(resultColNames.get(i), (Double)avgObj.get("sum") / Double.valueOf((Long)avgObj.get("count")));
+          Double sum = (Double)avgObj.get("sum");
+          Long count = (Long)avgObj.get("count");
+          Double avg = BigDecimal.valueOf(sum / count).setScale(2, RoundingMode.HALF_UP).doubleValue();
+          newRow.add(resultColNames.get(i), avg);
         } else {
           newRow.add(resultColNames.get(i), aggregatedValues.get(i));
         }
@@ -1254,13 +1251,86 @@ public class DataFrame implements Serializable {
     return doAggregateInternal(groupByColNames, targetExprStrs);
   }
 
+  private Map<String, Object> buildGroupByKey(Row row, List<String> groupByColNames) {
+    Map<String, Object> groupByKey = new HashMap<>();
+    for (String groupByColName : groupByColNames) {
+      groupByKey.put(groupByColName, row.get(groupByColName));
+    }
+    return groupByKey;
+  }
+
+  private boolean groupByKeyChanged(Row row, List<String> groupByColNames, Map<String, Object> groupByKey) {
+    for (String groupByColName : groupByColNames) {
+      if (!groupByKey.get(groupByColName).equals(row.get(groupByColName))) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  // row: row from aggregatedDf
+  private Row newPivotRow(Row row, List<String> colNames, List<TYPE> colTypes, List<String> groupByColNames) throws TeddyException {
+    Row newRow = new Row();
+    int colno;
+
+    for (String groupByColName : groupByColNames) {
+      newRow.add(groupByColName, row.get(groupByColName));
+    }
+
+    // 일단 기본값으로 깔고, 실제 있는 값을 채우기로 함
+    for (colno = groupByColNames.size(); colno < colNames.size(); colno++) {
+      TYPE colType = colTypes.get(colno);
+      switch (colType) {
+        case DOUBLE:
+          newRow.add(colNames.get(colno), Double.valueOf(0));
+          break;
+        case LONG:
+          newRow.add(colNames.get(colno), Long.valueOf(0));
+          break;
+        default:
+          throw new TeddyException("doPivot(): column type of aggregation value should be DOUBLE or LONG: " + colType);
+      }
+    }
+    return newRow;
+  }
+
+  private String buildPivotNewColName(AggrType aggrType, String aggrTargetColName,
+                                      List<String> pivotColNames, Row row) {
+    String newColName = null;
+
+    switch (aggrType) {
+      case COUNT:
+        newColName = "row_count";
+        break;
+      case SUM:
+        newColName = "sum_" + aggrTargetColName;
+        break;
+      case AVG:
+        newColName = "avg_" + aggrTargetColName;
+        break;
+      case MIN:
+        newColName = "min_" + aggrTargetColName;
+        break;
+      case MAX:
+        newColName = "max_" + aggrTargetColName;
+        break;
+    }
+
+    for (String pivotColName : pivotColNames) {
+      newColName += "_" + row.get(pivotColName);
+    }
+    return newColName;
+  }
+
   public DataFrame doPivot(Pivot pivot) throws TeddyException {
-    Expression targetColExpr = pivot.getCol();
+    Expression pivotColExpr = pivot.getCol();
     Expression groupByColExpr = pivot.getGroup();
     Expression aggrValueExpr = pivot.getValue();
     List<String> pivotColNames = new ArrayList<>();
     List<String> groupByColNames = new ArrayList<>();
-    List<String> targetExprStrs = new ArrayList<>();      // sum(x), avg(x), count() 등의 expression string
+    List<String> aggrValueStrs = new ArrayList<>();      // sum(x), avg(x), count() 등의 expression string
+    List<AggrType> aggrTypes = new ArrayList<>();
+    List<String> aggrTargetColNames = new ArrayList<>();
     int rowno, colno;
 
     // group by expression -> group by colnames
@@ -1273,21 +1343,21 @@ public class DataFrame implements Serializable {
     }
 
     // pivot target (to-be-column) column expression -> group by colnames
-    if (targetColExpr instanceof Identifier.IdentifierExpr) {
-      pivotColNames.add(((Identifier.IdentifierExpr) targetColExpr).getValue());
-    } else if (targetColExpr instanceof Identifier.IdentifierArrayExpr) {
-      pivotColNames.addAll(((Identifier.IdentifierArrayExpr) targetColExpr).getValue());
+    if (pivotColExpr instanceof Identifier.IdentifierExpr) {
+      pivotColNames.add(((Identifier.IdentifierExpr) pivotColExpr).getValue());
+    } else if (pivotColExpr instanceof Identifier.IdentifierArrayExpr) {
+      pivotColNames.addAll(((Identifier.IdentifierArrayExpr) pivotColExpr).getValue());
     } else {
-      throw new TeddyException("doPivot(): invalid pivot target column expression type: " + targetColExpr.toString());
+      throw new TeddyException("doPivot(): invalid pivot column expression type: " + pivotColExpr.toString());
     }
 
     // aggregation value expression -> aggregation expression strings
     if (aggrValueExpr instanceof Constant.StringExpr) {
-      targetExprStrs.add((String) (((Constant.StringExpr) aggrValueExpr).getValue()));
+      aggrValueStrs.add((String) (((Constant.StringExpr) aggrValueExpr).getValue()));
     } else if (aggrValueExpr instanceof Constant.ArrayExpr) {
       for (Object obj : ((Constant.ArrayExpr) aggrValueExpr).getValue()) {
         String strAggrValue = (String) obj;
-        targetExprStrs.add(strAggrValue);
+        aggrValueStrs.add(strAggrValue);
       }
     } else {
       throw new TeddyException("doPivot(): invalid aggregation value expression type: " + aggrValueExpr.toString());
@@ -1297,8 +1367,7 @@ public class DataFrame implements Serializable {
     mergedGroupByColNames.addAll(pivotColNames);
     mergedGroupByColNames.addAll(groupByColNames);
 
-    DataFrame aggregatedDf = doAggregateInternal(mergedGroupByColNames, targetExprStrs);
-    DataFrame pivotedDf = new DataFrame();
+    DataFrame aggregatedDf = doAggregateInternal(mergedGroupByColNames, aggrValueStrs);
 
     // <aggregatedDf>
     // +--------------+--------------+----------+----------+------------+------------+
@@ -1311,20 +1380,118 @@ public class DataFrame implements Serializable {
     // | priority | status | sum_price_1992_01 | sum_price_1992_02 | ... | row_count_1992_01 | row_count_1992_02 | ... |
     // +----------+--------+-------------------+-------------------+-----+-------------------+-------------------+-----+
 
+    DataFrame pivotedDf = new DataFrame();
     pivotedDf.colCnt = groupByColNames.size();
+
+    // 일단 group by column은 column에 추가
     pivotedDf.colNames.addAll(groupByColNames);
     for (String colName : groupByColNames) {
       pivotedDf.colTypes.add(getTypeOfColumn(colName));
     }
 
-    DataFrame tmpDf = aggregatedDf.select(pivotColNames);
-    tmpDf = tmpDf.doAggregateInternal(pivotColNames, new ArrayList<>());
-    tmpDf = tmpDf.doSortInternal(pivotColNames);
-    tmpDf.show();
+    // pivot column을 추가: aggrType은 prefix, distinct value는 surfix -> pivotColNames로 sort해서 진행
+    aggregatedDf = aggregatedDf.doSortInternal(pivotColNames);
+    aggregatedDf.show(200);
 
-    // TODO: implementing
+    for (int i = 0; i < aggrValueStrs.size(); i++) {
+      String aggrValueStr = stripSingleQuote(aggrValueStrs.get(i));
+      AggrType aggrType;
+      TYPE newColType = TYPE.INVALID;
+      String newColName;
+      String aggrTargetColName = null;
 
-    return aggregatedDf;
+      if (aggrValueStr.toUpperCase().startsWith("COUNT")) {
+        aggrType = AggrType.COUNT;
+        newColType = TYPE.LONG;
+      } else {
+        if (aggrValueStr.toUpperCase().startsWith(AggrType.SUM.name())) {
+          aggrType = AggrType.SUM;
+        } else if (aggrValueStr.toUpperCase().startsWith(AggrType.AVG.name())) {
+          aggrType = AggrType.AVG;
+        } else if (aggrValueStr.toUpperCase().startsWith(AggrType.MIN.name())) {
+          aggrType = AggrType.MIN;
+        } else if (aggrValueStr.toUpperCase().startsWith(AggrType.MAX.name())) {
+          aggrType = AggrType.MAX;
+        } else {
+          throw new TeddyException("doAggregateInternal(): unsupported aggregation function: " + aggrValueStr);
+        }
+
+        Pattern pattern = Pattern.compile("\\w+\\((\\w+)\\)");
+        Matcher matcher = pattern.matcher(aggrValueStr);
+        if (matcher.find() == false) {
+          throw new TeddyException("doAggregateInternal(): wrong aggregation function expression: " + aggrValueStr);
+        }
+
+        aggrTargetColName = matcher.group(1);
+        for (colno = 0; colno < colCnt; colno++) {
+          String colName = colNames.get(colno);
+          if (colName.equals(aggrTargetColName)) {
+            newColType = (aggrType == AggrType.AVG) ? TYPE.DOUBLE : getTypeOfColumn(colName);
+            break;
+          }
+        }
+        if (colno == colCnt) {
+          throw new TeddyException("doAggregateInternal(): aggregation target column not found: " + aggrTargetColName);
+        }
+      }
+
+      Map<String, Object> pivotColGroupKey = null;
+      for (Row row : aggregatedDf.objGrid) {
+        if (pivotColGroupKey == null || groupByKeyChanged(row, pivotColNames, pivotColGroupKey)) {
+          newColName = buildPivotNewColName(aggrType, aggrTargetColName, pivotColNames, row);
+
+          pivotedDf.colCnt++;
+          pivotedDf.colNames.add(checkNewColName(newColName, true));
+          pivotedDf.colTypes.add(newColType);
+
+          pivotColGroupKey = buildGroupByKey(row, pivotColNames);
+        }
+        if (pivotColGroupKey == null) {
+          pivotColGroupKey = buildGroupByKey(row, pivotColNames);
+        }
+      }
+
+      if (pivotedDf.colCnt > 1000) {
+        throw new TeddyException("doPivot(): too many pivoted column count: " + pivotedDf.colCnt);
+      }
+
+      aggrTypes.add(aggrType);
+      aggrTargetColNames.add(aggrTargetColName);
+    }
+
+    // group by column, pivot column들을 모두 포함한 row들 생성  -> groupByColNames으로 sort해서 진행
+    // aggregatedDf의 row가 더 남지 않을 때까지  를 모두 돌아갈 때까지 pivotDf를 만듦
+    aggregatedDf = aggregatedDf.doSortInternal(groupByColNames);
+    Map<String, Object> groupByKey = null;
+    aggregatedDf.show(200);
+
+    Iterator<Row> iter = aggregatedDf.objGrid.iterator();
+    Row row = null;     // of aggregatedDf
+    Row newRow = null;  // of pivotedDf
+    while (iter.hasNext()) {
+      row = iter.next();  // of aggregatedDf
+      if (groupByKey == null) {
+        newRow = newPivotRow(row, pivotedDf.colNames, pivotedDf.colTypes, groupByColNames);
+        groupByKey = buildGroupByKey(row, groupByColNames);
+      } else if (groupByKeyChanged(row, groupByColNames, groupByKey)) {
+        pivotedDf.objGrid.add(newRow);
+        newRow = newPivotRow(row, pivotedDf.colNames, pivotedDf.colTypes, groupByColNames);
+        groupByKey = buildGroupByKey(row, groupByColNames);
+      }
+
+      List<String> aggregatedDfColNames = new ArrayList<>();
+      for (colno = 0; colno < aggrTargetColNames.size(); colno++) {
+        aggregatedDfColNames.add(aggregatedDf.colNames.get(colno));
+      }
+      for (int i = 0; i < aggrTargetColNames.size(); i++) {
+        String aggrTargetColName = aggrTargetColNames.get(i);
+        newRow.set(buildPivotNewColName(aggrTypes.get(i), aggrTargetColName, pivotColNames, row),
+                   row.get(i));
+      }
+    }
+    pivotedDf.objGrid.add(newRow);
+
+    return pivotedDf;
   }
 
   private DataFrame doSortInternal(List<String> orderByColNames) throws TeddyException {
@@ -1357,7 +1524,7 @@ public class DataFrame implements Serializable {
         }
       }
       if (colno == colCnt) {
-        throw new TeddyException("doAggregateInternal(): order by column not found: " + orderByColName);
+        throw new TeddyException("doSortInternal(): order by column not found: " + orderByColName);
       }
     }
 
@@ -1402,7 +1569,7 @@ public class DataFrame implements Serializable {
                 break;
               default:
                 try {
-                  throw new TeddyException("doSort(): invalid column type: " + colType.name());
+                  throw new TeddyException("doSortInternal(): invalid column type: " + colType.name());
                 } catch (TeddyException e) {
                   e.printStackTrace();
                 }

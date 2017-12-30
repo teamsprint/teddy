@@ -562,4 +562,17 @@ public class DataFrameTest {
     DataFrame newDf = contract.doPivot((Pivot) rule);
     newDf.show();
   }
+
+  @Test
+  public void test_pivot_avg() throws IOException, TeddyException {
+    DataFrame contract = new DataFrame();
+    contract.setGrid(grids.get("contract"));
+    contract = prepare_contract(contract);
+    contract.show();
+
+    String ruleString = "pivot col: pcode1, pcode2 value: 'avg(detail_store_code)' group: pcode3, pcode4";
+    Rule rule = new RuleVisitorParser().parse(ruleString);
+    DataFrame newDf = contract.doPivot((Pivot) rule);
+    newDf.show(100);
+  }
 }

@@ -26,6 +26,11 @@ public class Row implements Expr.NumericBinding {
     nameIdxs.put(colName, colCnt++);
   }
 
+  public void set(String colName, Object objCol) {
+    assert nameIdxs.containsKey(colName) : colName;
+    objCols.set(nameIdxs.get(colName), objCol);
+  }
+
   public int size() {
     return colCnt;
   }
