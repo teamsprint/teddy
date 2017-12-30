@@ -575,4 +575,40 @@ public class DataFrameTest {
     DataFrame newDf = contract.doPivot((Pivot) rule);
     newDf.show(100);
   }
+
+  @Test
+  public void test_unpivot_sum() throws IOException, TeddyException {
+    DataFrame contract = new DataFrame();
+    contract.setGrid(grids.get("contract"));
+    contract = prepare_contract(contract);
+    contract.show();
+
+    String ruleString = "pivot col: pcode1 value: 'sum(detail_store_code)' group: pcode3, pcode4";
+    Rule rule = new RuleVisitorParser().parse(ruleString);
+    DataFrame newDf = contract.doPivot((Pivot) rule);
+
+    ruleString = "unpivot col: sum_detail_store_code_1, sum_detail_store_code_2, sum_detail_store_code_3, sum_detail_store_code_4 groupEvery: 1";
+    rule = new RuleVisitorParser().parse(ruleString);
+    newDf = newDf.doUnpivot((Unpivot) rule);
+
+    newDf.show();
+  }
+
+  @Test
+  public void test_unpivot_sum_every() throws IOException, TeddyException {
+    DataFrame contract = new DataFrame();
+    contract.setGrid(grids.get("contract"));
+    contract = prepare_contract(contract);
+    contract.show();
+
+    String ruleString = "pivot col: pcode1 value: 'sum(detail_store_code)' group: pcode3, pcode4";
+    Rule rule = new RuleVisitorParser().parse(ruleString);
+    DataFrame newDf = contract.doPivot((Pivot) rule);
+
+    ruleString = "unpivot col: sum_detail_store_code_1, sum_detail_store_code_2, sum_detail_store_code_3, sum_detail_store_code_4 groupEvery: 4";
+    rule = new RuleVisitorParser().parse(ruleString);
+    newDf = newDf.doUnpivot((Unpivot) rule);
+
+    newDf.show();
+  }
 }

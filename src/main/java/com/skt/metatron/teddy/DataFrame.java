@@ -1391,7 +1391,6 @@ public class DataFrame implements Serializable {
 
     // pivot column을 추가: aggrType은 prefix, distinct value는 surfix -> pivotColNames로 sort해서 진행
     aggregatedDf = aggregatedDf.doSortInternal(pivotColNames);
-    aggregatedDf.show(200);
 
     for (int i = 0; i < aggrValueStrs.size(); i++) {
       String aggrValueStr = stripSingleQuote(aggrValueStrs.get(i));
@@ -1463,7 +1462,6 @@ public class DataFrame implements Serializable {
     // aggregatedDf의 row가 더 남지 않을 때까지  를 모두 돌아갈 때까지 pivotDf를 만듦
     aggregatedDf = aggregatedDf.doSortInternal(groupByColNames);
     Map<String, Object> groupByKey = null;
-    aggregatedDf.show(200);
 
     Iterator<Row> iter = aggregatedDf.objGrid.iterator();
     Row row = null;     // of aggregatedDf
@@ -1492,6 +1490,99 @@ public class DataFrame implements Serializable {
     pivotedDf.objGrid.add(newRow);
 
     return pivotedDf;
+  }
+
+  public DataFrame doUnpivot(Unpivot unpivot) throws TeddyException {
+    Expression unpivotColExpr = unpivot.getCol();
+    int groupEvery = unpivot.getGroupEvery();
+    List<String> unpivotColNames = new ArrayList<>();
+    List<String> fixedColNames = new ArrayList<>();
+
+    // group by expression -> group by colnames
+    if (unpivotColExpr instanceof Identifier.IdentifierExpr) {
+      unpivotColNames.add(((Identifier.IdentifierExpr) unpivotColExpr).getValue());
+    } else if (unpivotColExpr instanceof Identifier.IdentifierArrayExpr) {
+      unpivotColNames.addAll(((Identifier.IdentifierArrayExpr) unpivotColExpr).getValue());
+    } else {
+      throw new TeddyException("doUnpivot(): invalid unpivot target column expression type: " + unpivotColExpr.toString());
+    }
+
+    // unpivot target이 존재하는지 체크
+    for (String colName : unpivotColNames) {
+      if (!colName.contains(colName)) {
+        throw new TeddyException("doUnpivot(): column not found: " + colName);
+      }
+    }
+
+    // 고정 column 리스트 확보
+    for (String colName : colNames) {
+      if (!unpivotColNames.contains(colName)) {
+        fixedColNames.add(colName);
+      }
+    }
+
+    DataFrame newDf = new DataFrame();
+    newDf.colCnt = fixedColNames.size() + groupEvery * 2;
+    for (int i = 0; i < fixedColNames.size(); i++) {
+      String colName = fixedColNames.get(i);
+      newDf.colNames.add(colName);
+      newDf.colTypes.add(getTypeOfColumn(colName));
+    }
+    for (int i = 0; i < unpivotColNames.size(); i++) {
+      String unpivotColName = unpivotColNames.get(i);
+      TYPE unpivotColType = getTypeOfColumn(unpivotColName);
+      newDf.colNames.add("key" + (i + 1));
+      newDf.colTypes.add(TYPE.STRING);
+      newDf.colNames.add("value" + (i + 1));
+      newDf.colTypes.add(unpivotColType);
+
+      // groupEvery가 1인 경우 key1, value1만 사용함.
+      // 이 경우, 모든 unpivot 대상 column의 TYPE이 같아야함.
+      if (groupEvery == 1) {
+        for (i++; i < unpivotColNames.size(); i++) {
+          unpivotColName = unpivotColNames.get(i);
+          if (unpivotColType != getTypeOfColumn(unpivotColName)) {
+            throw new TeddyException(String.format(
+                    "doUnpivot(): unpivot target column types differ: %s != %s",
+                    unpivotColType, getTypeOfColumn(unpivotColName)));
+          }
+        }
+        break;
+      }
+    }
+
+    Iterator<Row> iter = objGrid.iterator();
+    Row row = null;     // of aggregatedDf
+    Row newRow = null;  // of pivotedDf
+    while (iter.hasNext()) {
+      row = iter.next();  // of aggregatedDf
+      newRow = new Row();
+      for (String fixedColName : fixedColNames) {
+        newRow.add(fixedColName, row.get(fixedColName));
+      }
+      int keyNo = 1;
+      for (int i = 0; i < unpivotColNames.size(); i++) {
+        String unpivotColName = unpivotColNames.get(i);
+        newRow.add("key" + keyNo, unpivotColName);
+        newRow.add("value" + keyNo, row.get(unpivotColName));
+        if (groupEvery == 1) {
+          newDf.objGrid.add(newRow);
+          keyNo = 1;
+          newRow = new Row();
+          for (String fixedColName : fixedColNames) {
+            newRow.add(fixedColName, row.get(fixedColName));
+          }
+          continue;
+        } else if (groupEvery != unpivotColNames.size()) {
+          throw new TeddyException("doUnpivot(): group every count should be 1 or all: " + groupEvery);
+        }
+        keyNo++;
+      }
+      if (groupEvery != 1) {
+        newDf.objGrid.add(newRow);
+      }
+    }
+    return newDf;
   }
 
   private DataFrame doSortInternal(List<String> orderByColNames) throws TeddyException {
