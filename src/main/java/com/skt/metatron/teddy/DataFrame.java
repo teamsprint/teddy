@@ -343,7 +343,7 @@ public class DataFrame implements Serializable {
         throw new TeddyException("decideType(): invalid function arguments: " + args.size());
       }
     }
-    System.out.println(String.format("decideType(): resultType=%s expr=%s", resultType, expr));
+//    LOGGER.debug(String.format("decideType(): resultType=%s expr=%s", resultType, expr));
     return resultType;
   }
 
@@ -400,7 +400,7 @@ public class DataFrame implements Serializable {
       }
     }
 
-    System.out.println(String.format("eval(): resultType=%s resultObj=%s expr=%s", resultType, resultObj.toString(), expr));
+//    System.out.println(String.format("eval(): resultType=%s resultObj=%s expr=%s", resultType, resultObj.toString(), expr));
     return resultObj;
   }
 
@@ -1688,5 +1688,29 @@ public class DataFrame implements Serializable {
     }
 
     return doSortInternal(orderByColNames);
+  }
+
+  private DataFrame filter(Expression condExpr, boolean keep) throws TeddyException {
+    DataFrame newDf = new DataFrame();
+    newDf.colCnt = colCnt;
+    newDf.colNames.addAll(colNames);
+    newDf.colTypes.addAll(colTypes);
+
+    for (int rowno = 0; rowno < objGrid.size(); rowno++) {
+      if (((Long) eval(condExpr, rowno)).longValue() == ((keep) ? 1 : 0)) {
+        newDf.objGrid.add(objGrid.get(rowno));
+      }
+    }
+    return newDf;
+  }
+
+  public DataFrame doKeep(Keep keep) throws TeddyException {
+    Expression condExpr = keep.getRow();
+    return filter(condExpr, true);
+  }
+
+  public DataFrame doDelete(Delete delete) throws TeddyException {
+    Expression condExpr = delete.getRow();
+    return filter(condExpr, false);
   }
 }

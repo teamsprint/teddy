@@ -611,4 +611,32 @@ public class DataFrameTest {
 
     newDf.show();
   }
+
+  @Test
+  public void test_keep() throws IOException, TeddyException {
+    DataFrame contract = new DataFrame();
+    contract.setGrid(grids.get("contract"));
+    contract = prepare_contract(contract);
+    contract.show();
+
+    String ruleString = "keep row: if(pcode4 < 10)";
+    Rule rule = new RuleVisitorParser().parse(ruleString);
+    DataFrame newDf = contract.doKeep((Keep) rule);
+
+    newDf.show();
+  }
+
+  @Test
+  public void test_delete() throws IOException, TeddyException {
+    DataFrame contract = new DataFrame();
+    contract.setGrid(grids.get("contract"));
+    contract = prepare_contract(contract);
+    contract.show();
+
+    String ruleString = "delete row: if(pcode4 < 10)";
+    Rule rule = new RuleVisitorParser().parse(ruleString);
+    DataFrame newDf = contract.doDelete((Delete) rule);
+
+    newDf.show();
+  }
 }
