@@ -726,6 +726,55 @@ public class DataFrame implements Serializable {
     return newDf;
   }
 
+  public DataFrame doReplace(Replace replace) throws TeddyException {
+    Expression targetColExpr = replace.getCol();
+    String targetColName;
+    Expression expr = replace.getOn();
+    Expression withExpr = replace.getWith();
+    String withExprStr;
+    Boolean global = replace.getGlobal();
+    int rowno;
+
+    if (!(targetColExpr instanceof Identifier.IdentifierExpr)) {
+      throw new TeddyException("doReplace(): wrong target column expression: " + targetColExpr.toString());
+    }
+    targetColName = targetColExpr.toString();
+    withExprStr = (String)eval(withExpr, 0);  // TODO; eval이 Row를 받도록.
+
+    DataFrame newDf = new DataFrame();
+    newDf.colCnt = colCnt;
+    newDf.colNames.addAll(colNames);
+    newDf.colTypes.addAll(colTypes);
+    for (rowno = 0; rowno < objGrid.size(); rowno++) {
+      newDf.objGrid.add(objGrid.get(rowno));
+    }
+
+    String patternStr;
+    if (expr instanceof Constant.StringExpr) {
+      patternStr = ((Constant.StringExpr) expr).getEscapedValue();
+    } else if (expr instanceof RegularExpr) {
+      patternStr = ((RegularExpr) expr).getEscapedValue().replaceAll("[\\\\]+", "\\\\");
+    } else {
+      throw new TeddyException("deReplace(): illegal pattern type: " + expr.toString());
+    }
+
+    for (rowno = 0; rowno < newDf.objGrid.size(); rowno++) {
+      Row row = newDf.objGrid.get(rowno);
+      String targetStr = (String) row.get(targetColName);
+      Pattern pattern = Pattern.compile(patternStr);
+      Matcher matcher = pattern.matcher(targetStr);
+      if (matcher.find()) {
+        if (global) {
+          row.set(targetColName, matcher.replaceAll(stripSingleQuote((String) eval(withExpr, rowno))));
+        } else {
+          row.set(targetColName, matcher.replaceFirst(stripSingleQuote((String) eval(withExpr, rowno))));
+        }
+      }
+    }
+
+    return newDf;
+  }
+
   public DataFrame doNest(Nest nest) throws TeddyException {
     Expression targetExpr = nest.getCol();
     List<String> targetColNames = new ArrayList<>();

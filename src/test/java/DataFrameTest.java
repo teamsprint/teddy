@@ -406,6 +406,37 @@ public class DataFrameTest {
   }
 
   @Test
+  public void test_replace() throws IOException, TeddyException {
+    DataFrame contract = new DataFrame();
+    contract.setGrid(grids.get("contract"));
+    contract = prepare_contract(contract);
+    contract.show();
+
+    String ruleString = "replace col: cdate on: '0' with: 'X' global: false";
+    Rule rule = new RuleVisitorParser().parse(ruleString);
+    DataFrame newDf = contract.doReplace((Replace) rule);
+    newDf.show();
+
+    ruleString = "replace col: cdate on: '0' with: 'X' global: true";
+    rule = new RuleVisitorParser().parse(ruleString);
+    newDf = contract.doReplace((Replace) rule);
+    newDf.show();
+  }
+
+  @Test
+  public void test_replace_regex() throws IOException, TeddyException {
+    DataFrame contract = new DataFrame();
+    contract.setGrid(grids.get("contract"));
+    contract = prepare_contract(contract);
+    contract.show(100);
+
+    String ruleString = "extract col: cdate on: /\\w+/ quote: '\"' limit: 3";
+    Rule rule = new RuleVisitorParser().parse(ruleString);
+    DataFrame newDf = contract.doExtract((Extract)rule);
+    newDf.show();
+  }
+
+  @Test
   public void test_nest_unnest_array() throws IOException, TeddyException {
     DataFrame contract = new DataFrame();
     contract.setGrid(grids.get("contract"));
