@@ -975,6 +975,8 @@ public class DataFrame implements Serializable {
     newDf.colNames.add(newColName);
     newDf.colTypes.add(TYPE.STRING);
 
+    ObjectMapper mapper = new ObjectMapper();
+
     for (rowno = 0; rowno < objGrid.size(); rowno++) {
       Row row = objGrid.get(rowno);
       Row newRow = new Row();
@@ -995,7 +997,7 @@ public class DataFrame implements Serializable {
         Map<String, Object> map;
         try {
           col = (String) row.get(targetColno);
-          map = new ObjectMapper().readValue((String) col, HashMap.class);
+          map = mapper.readValue(col, HashMap.class);
         } catch (JsonParseException e) {
           String msg = "doUnnest(): invalid JSON: col=" + col;
           LOGGER.error(msg);
