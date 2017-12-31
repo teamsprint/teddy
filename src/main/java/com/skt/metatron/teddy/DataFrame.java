@@ -577,7 +577,6 @@ public class DataFrame implements Serializable {
       throw new TeddyException("join(): join type not suppoerted: op: " + predicate.getOp());
     }
     Expr.BinEqExpr eqExpr = new Expr.BinEqExpr(predicate.getOp(), predicate.getLeft(), predicate.getRight());
-    boolean typeChecked = false;
 
     DataFrame newDf = new DataFrame();
     newDf.colCnt = leftSelectColNames.size() + rightSelectColNames.size();
@@ -590,43 +589,40 @@ public class DataFrame implements Serializable {
       newDf.colTypes.add(rightDataFrame.colTypes.get(rightDataFrame.colNames.indexOf(colName)));
     }
 
+    Identifier.IdentifierExpr left = (Identifier.IdentifierExpr) eqExpr.getLeft();    // loop 밖으로
+    Identifier.IdentifierExpr right = (Identifier.IdentifierExpr) eqExpr.getRight();
+
+    Object[] lobjs = new Object[objGrid.size()];
+    Object[] robjs = new Object[rightDataFrame.objGrid.size()];
+
+    Row lrow = null;
+    Row rrow = null;
     for (int lrowno = 0; lrowno < objGrid.size(); lrowno++) {
-      Row lrow = objGrid.get(lrowno);
+      lrow = objGrid.get(lrowno);
+      lobjs[lrowno] = left.eval(lrow).value();
+    }
+    for (int rrowno = 0; rrowno < rightDataFrame.objGrid.size(); rrowno++) {
+      rrow = rightDataFrame.objGrid.get(rrowno);
+      robjs[rrowno] = right.eval(rrow).value();
+    }
 
+    // 1줄만 type check
+    if (lrow == null || rrow == null || left.eval(lrow).type() != right.eval(rrow).type()) {
+      throw new TeddyException(String.format("join(): predicate type mismatch: left=%s right%s",
+              lrow == null ? "null" : left.eval(lrow).type().name(),
+              rrow == null ? "null" : right.eval(rrow).type().name()));
+    }
+
+    for (int lrowno = 0; lrowno < objGrid.size(); lrowno++) {
       for (int rrowno = 0; rrowno < rightDataFrame.objGrid.size(); rrowno++) {
-        Row rrow = rightDataFrame.objGrid.get(rrowno);
+        if (lobjs[lrowno].equals(robjs[rrowno])) {
+          lrow = objGrid.get(lrowno);
+          rrow = rightDataFrame.objGrid.get(rrowno);
+          newDf.addJoinedRow(lrow, leftSelectColNames, rrow, rightSelectColNames);
 
-        Identifier.IdentifierExpr left = (Identifier.IdentifierExpr) eqExpr.getLeft();    // loop 밖으로
-        Identifier.IdentifierExpr right = (Identifier.IdentifierExpr) eqExpr.getRight();
-        ExprType ltype = left.eval(lrow).type();
-
-        if (!typeChecked) {
-          ExprType rtype = right.eval(rrow).type();
-          if (ltype != rtype) {
-            throw new TeddyException(String.format("join(): predicate type mismatch: left=%s right%s", ltype.toString(), rtype.toString()));
+          if (newDf.objGrid.size() == limitRowCnt) {
+            return newDf;
           }
-          typeChecked = true;
-        }
-
-        // lrow와 rrow를 합쳐서 NumericBindings를 만들지도 않았고, 그런다 해도 a=a 와 같은 predicate은 어쩌할 도리가 없기 때문에, 각각 eval을 한다.
-        // type 구분을 해서 eval을 해야한다는 귀찮음이 있다.
-        switch (ltype) {
-          case DOUBLE:
-            if (left.eval(lrow).asDouble() == right.eval(rrow).asDouble()) {
-              newDf.addJoinedRow(lrow, leftSelectColNames, rrow, rightSelectColNames);
-            }
-            break;
-          case LONG:
-            if (left.eval(lrow).asLong() == right.eval(rrow).asLong()) {
-              newDf.addJoinedRow(lrow, leftSelectColNames, rrow, rightSelectColNames);
-            }
-          case STRING:
-            if (left.eval(lrow).asString().equals(right.eval(rrow).asString())) {
-              newDf.addJoinedRow(lrow, leftSelectColNames, rrow, rightSelectColNames);
-            }
-        }
-        if (newDf.objGrid.size() == limitRowCnt) {
-          return newDf;
         }
       } // end of each rrow
     }
