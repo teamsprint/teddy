@@ -432,6 +432,24 @@ public class DataFrameTest {
   }
 
   @Test
+  public void test_countpattern_ignorecase() throws IOException, TeddyException {
+    DataFrame df = new DataFrame();
+    df.setGrid(grids.get("sample"));
+    df = prepare_common(df);
+    df.show();
+
+    String ruleString = "countpattern col: name on: 'm'";
+    Rule rule = new RuleVisitorParser().parse(ruleString);
+    DataFrame newDf = df.doCountPattern((CountPattern) rule);
+    newDf.show();
+
+    ruleString = "countpattern col: name on: 'm' ignoreCase: true";
+    rule = new RuleVisitorParser().parse(ruleString);
+    newDf = newDf.doCountPattern((CountPattern) rule);
+    newDf.show();
+  }
+
+  @Test
   public void test_replace() throws IOException, TeddyException {
     DataFrame contract = new DataFrame();
     contract.setGrid(grids.get("contract"));
@@ -529,6 +547,23 @@ public class DataFrameTest {
     newDf.show();
   }
 
+  @Test
+  public void test_split_ignorecase() throws IOException, TeddyException {
+    DataFrame df = new DataFrame();
+    df.setGrid(grids.get("sample"));
+    df = prepare_common(df);
+    df.show();
+
+    String ruleString = "split col: name on: 'm' limit: 2";
+    Rule rule = new RuleVisitorParser().parse(ruleString);
+    DataFrame newDf = df.doSplit((Split)rule);
+    newDf.show();
+
+    ruleString = "split col: name on: 'm' limit: 2 ignoreCase: true";
+    rule = new RuleVisitorParser().parse(ruleString);
+    newDf = newDf.doSplit((Split)rule);
+    newDf.show();
+  }
   @Test
   public void test_aggregate_sum() throws IOException, TeddyException {
     DataFrame contract = new DataFrame();

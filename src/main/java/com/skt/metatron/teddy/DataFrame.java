@@ -751,7 +751,7 @@ public class DataFrame implements Serializable {
     newDf.colNames.addAll(colNames);
     newDf.colTypes.addAll(colTypes);
 
-    String newColName = "countpattern_" + targetColName;
+    String newColName = checkNewColName("countpattern_" + targetColName, true);
     newDf.colCnt++;
     newDf.colNames.add(newColName);
     newDf.colTypes.add(TYPE.LONG);
@@ -759,6 +759,16 @@ public class DataFrame implements Serializable {
     String patternStr;
     if (expr instanceof Constant.StringExpr) {
       patternStr = ((Constant.StringExpr) expr).getEscapedValue();
+      if (ignoreCase != null && ignoreCase) {
+        String ignorePatternStr = "";
+        for (int i = 0; i < patternStr.length(); i++) {
+          ignorePatternStr += "[";
+          String c = String.valueOf(patternStr.charAt(i));
+          ignorePatternStr += c.toUpperCase() + c.toLowerCase();
+          ignorePatternStr += "]";
+        }
+        patternStr = ignorePatternStr;
+      }
     } else if (expr instanceof RegularExpr) {
       patternStr = ((RegularExpr) expr).getEscapedValue().replaceAll("[\\\\]+", "\\\\");
     } else {
@@ -1065,7 +1075,7 @@ public class DataFrame implements Serializable {
     String targetColName = split.getCol();
     Expression expr = split.getOn();
     int limit = split.getLimit();
-    boolean ignoreCase = split.getIgnoreCase();
+    Boolean ignoreCase = split.getIgnoreCase();
     int targetColno = -1;
     int rowno, colno;
 
@@ -1099,6 +1109,16 @@ public class DataFrame implements Serializable {
     String patternStr;
     if (expr instanceof Constant.StringExpr) {
       patternStr = ((Constant.StringExpr) expr).getEscapedValue();
+      if (ignoreCase != null && ignoreCase) {
+        String ignorePatternStr = "";
+        for (int i = 0; i < patternStr.length(); i++) {
+          ignorePatternStr += "[";
+          String c = String.valueOf(patternStr.charAt(i));
+          ignorePatternStr += c.toUpperCase() + c.toLowerCase();
+          ignorePatternStr += "]";
+        }
+        patternStr = ignorePatternStr;
+      }
     } else if (expr instanceof RegularExpr) {
       patternStr = ((RegularExpr) expr).getEscapedValue().replaceAll("[\\\\]+", "\\\\");
     } else {
@@ -1110,26 +1130,6 @@ public class DataFrame implements Serializable {
       Row newRow = new Row();
       for (colno = 0; colno < colCnt; colno++) {
         newRow.add(colNames.get(colno), row.get(colno));
-//      }
-//
-//      String newPatternStr;
-//      if (ignoreCase) {
-//        newPatternStr = "";
-//        String ignorePatternStr;
-//        for (int i = 0; i < patternStr.length(); i++) {
-//          ignorePatternStr = "[";
-//          String c = String.valueOf(patternStr.charAt(i));
-//          ignorePatternStr += c.toUpperCase() + c.toLowerCase();
-//          newPatternStr += ignorePatternStr;
-//        }
-//      } else {
-//        newPatternStr = ""kkkkk
-//      }
-//
-//
-//          if (patternStr[0] == patternStr[1])
-//            break;
-//        }
       }
 
       String targetStr = (String)row.get(targetColno);
