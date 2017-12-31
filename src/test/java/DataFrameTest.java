@@ -499,6 +499,19 @@ public class DataFrameTest {
   }
 
   @Test
+  public void test_nest_map() throws IOException, TeddyException {
+    DataFrame contract = new DataFrame();
+    contract.setGrid(grids.get("contract"));
+    contract = prepare_contract(contract);
+    contract.show();
+
+    String ruleString = "nest col: pcode1, pcode2, pcode3, pcode4 into: map as: pcode";
+    Rule rule = new RuleVisitorParser().parse(ruleString);
+    DataFrame newDf = contract.doNest((Nest)rule);
+    newDf.show();
+  }
+
+  @Test
   public void test_nest_unnest_map() throws IOException, TeddyException {
     DataFrame contract = new DataFrame();
     contract.setGrid(grids.get("contract"));
@@ -747,6 +760,50 @@ public class DataFrameTest {
     Rule rule = new RuleVisitorParser().parse(ruleString);
     DataFrame newDf = contract.doDelete((Delete) rule);
 
+    newDf.show();
+  }
+
+  @Test
+  public void test_move_before() throws IOException, TeddyException {
+    DataFrame contract = new DataFrame();
+    contract.setGrid(grids.get("contract"));
+    contract = prepare_contract(contract);
+    contract.show();
+
+    String ruleString = "move col: pcode4 before: pcode1";
+    Rule rule = new RuleVisitorParser().parse(ruleString);
+    DataFrame newDf = contract.doMove((Move) rule);
+    newDf.show();
+
+    ruleString = "move col: pcode4 before: cdate";
+    rule = new RuleVisitorParser().parse(ruleString);
+    newDf = newDf.doMove((Move) rule);
+    newDf.show();
+  }
+
+  @Test
+  public void test_move_after() throws IOException, TeddyException {
+    DataFrame contract = new DataFrame();
+    contract.setGrid(grids.get("contract"));
+    contract = prepare_contract(contract);
+    contract.show();
+
+    String ruleString = "move col: pcode4 after: customer_id";
+    Rule rule = new RuleVisitorParser().parse(ruleString);
+    DataFrame newDf = contract.doMove((Move) rule);
+    newDf.show();
+  }
+
+  @Test
+  public void test_move_after_last() throws IOException, TeddyException {
+    DataFrame contract = new DataFrame();
+    contract.setGrid(grids.get("contract"));
+    contract = prepare_contract(contract);
+    contract.show();
+
+    String ruleString = "move col: pcode4 after: detail_store_code";
+    Rule rule = new RuleVisitorParser().parse(ruleString);
+    DataFrame newDf = contract.doMove((Move) rule);
     newDf.show();
   }
 }

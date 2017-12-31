@@ -56,7 +56,7 @@ public class DataFrame implements Serializable {
 
   private TYPE getTypeOfColumn(String colName) throws TeddyException {
     int i;
-    for (i = 0; i < colNames.size(); i++) {
+    for (i = 0; i < colCnt; i++) {
       if (colNames.get(i).equals(colName)) {
         return colTypes.get(i);
       }
@@ -121,7 +121,7 @@ public class DataFrame implements Serializable {
   public void show(int limit) {
     limit = objGrid.size() < limit ? objGrid.size() : limit;
     List<Integer> widths = new ArrayList<>();
-    for (int colno = 0; colno < colNames.size(); colno++) {
+    for (int colno = 0; colno < colCnt; colno++) {
       widths.add(Math.max(colNames.get(colno).length(), colTypes.get(colno).toString().length()));
     }
     for (int rowno = 0; rowno < limit; rowno++) {
@@ -1040,7 +1040,7 @@ public class DataFrame implements Serializable {
     DataFrame newDf = new DataFrame();
     newDf.colCnt = colCnt;
     newDf.colNames.addAll(colNames);
-    for (colno = 0; colno < colNames.size(); colno++) {
+    for (colno = 0; colno < colCnt; colno++) {
       if (colNames.get(colno).equals(targetColName)) {
         newDf.colTypes.add(TYPE.STRING);
       } else {
@@ -1060,7 +1060,7 @@ public class DataFrame implements Serializable {
       for (int i = 0; i < values.length; i++) {
         String value = stripDoubleQuote(values[i]);
         newRow = new Row();
-        for (colno = 0; colno < colNames.size(); colno++) {
+        for (colno = 0; colno < colCnt; colno++) {
           String colName = colNames.get(colno);
           if (colno == targetColno) {
             newRow.add(colName, value);
@@ -1896,5 +1896,90 @@ public class DataFrame implements Serializable {
   public DataFrame doDelete(Delete delete) throws TeddyException {
     Expression condExpr = delete.getRow();
     return filter(condExpr, false);
+  }
+
+  public DataFrame doMove(Move move) throws TeddyException {
+    String targetColName = move.getCol();
+    String beforeColName = move.getBefore();
+    String afterColName = move.getAfter();
+    int rowno, colno;
+    int targetColno = -1;
+    int destColno = -1;
+
+    if (beforeColName != null) {
+      for (colno = 0; colno < colCnt; colno++) {
+        if (beforeColName.equals(colNames.get(colno))) {
+          destColno = colno;
+          break;
+        }
+      }
+    } else if (afterColName != null) {
+      for (colno = 0; colno < colCnt; colno++) {
+        if (afterColName.equals(colNames.get(colno))) {
+          destColno = colno + 1;  // 원 DF를 기준으로 하기 때문에, 기존에는 없던 colno를 가리킬 수도 있음.
+                                  // 아래에서 알아서 처리될 예정
+          break;
+        }
+      }
+    } else {
+      throw new TeddyException("doMove(): \"before:\" or \"after:\" clause is needed: " + move.toString());
+    }
+
+    for (colno = 0; colno < colCnt; colno++) {
+      if (targetColName.equals(colNames.get(colno))) {
+        targetColno = colno;
+        break;
+      }
+    }
+
+    if (targetColno == destColno) {
+      throw new TeddyException("doMove(): target position is same to current position: " + move.toString());
+    }
+
+    List<Integer> targetOrder = new ArrayList<>();
+
+    DataFrame newDf = new DataFrame();
+    newDf.colCnt = colCnt;
+
+    for (colno = 0; colno < colCnt; colno++) {
+      if (colno == targetColno) {
+        continue;
+      } else if (colno == destColno) {
+        // 움직이는 column (move 대상)
+        newDf.colNames.add(colNames.get(targetColno));
+        newDf.colTypes.add(colTypes.get(targetColno));
+        targetOrder.add(targetColno);
+
+        // 원래 그 자리에 있던 column
+        newDf.colNames.add(colNames.get(colno));
+        newDf.colTypes.add(colTypes.get(colno));
+        targetOrder.add(colno);
+      } else if (colno == colCnt - 1 && destColno == colCnt) {
+        // 원래 그 자리에 있던 column
+        newDf.colNames.add(colNames.get(colno));
+        newDf.colTypes.add(colTypes.get(colno));
+        targetOrder.add(colno);
+
+        // 움직이는 column (move 대상)
+        newDf.colNames.add(colNames.get(targetColno));
+        newDf.colTypes.add(colTypes.get(targetColno));
+        targetOrder.add(targetColno);
+      } else {
+        newDf.colNames.add(colNames.get(colno));
+        newDf.colTypes.add(colTypes.get(colno));
+        targetOrder.add(colno);
+      }
+    }
+
+    for (rowno = 0; rowno < objGrid.size(); rowno++) {
+      Row row = objGrid.get(rowno);
+      Row newRow = new Row();
+      for (int i = 0; i < targetOrder.size(); i++) {
+        colno = targetOrder.get(i);
+        newRow.add(colNames.get(colno), row.get(colno));
+      }
+      newDf.objGrid.add(newRow);
+    }
+    return newDf;
   }
 }
