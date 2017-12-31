@@ -726,6 +726,65 @@ public class DataFrame implements Serializable {
     return newDf;
   }
 
+  public DataFrame doCountPattern(CountPattern countPattern) throws TeddyException {
+    String targetColName = countPattern.getCol();
+    int targetColno = -1;
+    Expression expr = countPattern.getOn();
+    Boolean ignoreCase = countPattern.getIgnoreCase();
+    int rowno, colno;
+
+    if (!colNames.contains(targetColName)) {
+      throw new TeddyException("doCountPattern(): column not found: " + targetColName);
+    } else {
+      for (colno = 0; colno < colCnt; colno++) {
+        if (colNames.get(colno).equals(targetColName)) {
+          if (colTypes.get(colno) != TYPE.STRING) {
+            throw new TeddyException("doCountPattern(): works only on STRING: " + colTypes.get(colno));
+          }
+          targetColno = colno;
+        }
+      }
+    }
+
+    DataFrame newDf = new DataFrame();
+    newDf.colCnt = colCnt;
+    newDf.colNames.addAll(colNames);
+    newDf.colTypes.addAll(colTypes);
+
+    String newColName = "countpattern_" + targetColName;
+    newDf.colCnt++;
+    newDf.colNames.add(newColName);
+    newDf.colTypes.add(TYPE.LONG);
+
+    String patternStr;
+    if (expr instanceof Constant.StringExpr) {
+      patternStr = ((Constant.StringExpr) expr).getEscapedValue();
+    } else if (expr instanceof RegularExpr) {
+      patternStr = ((RegularExpr) expr).getEscapedValue().replaceAll("[\\\\]+", "\\\\");
+    } else {
+      throw new TeddyException("doCountPattern(): illegal pattern type: " + expr.toString());
+    }
+
+    for (rowno = 0; rowno < objGrid.size(); rowno++) {
+      Row row = objGrid.get(rowno);
+      Row newRow = new Row();
+      for (String colName : colNames) {
+        newRow.add(colName, row.get(colName));
+      }
+      String targetStr = (String)row.get(targetColno);
+      Pattern pattern = Pattern.compile(patternStr);
+      Matcher matcher = pattern.matcher(targetStr);
+      long count = 0;
+      while (matcher.find()) {
+        count++;
+      }
+      newRow.add(newColName, count);
+      newDf.objGrid.add(newRow);
+    }
+
+    return newDf;
+  }
+
   public DataFrame doReplace(Replace replace) throws TeddyException {
     Expression targetColExpr = replace.getCol();
     String targetColName;
@@ -1006,6 +1065,7 @@ public class DataFrame implements Serializable {
     String targetColName = split.getCol();
     Expression expr = split.getOn();
     int limit = split.getLimit();
+    boolean ignoreCase = split.getIgnoreCase();
     int targetColno = -1;
     int rowno, colno;
 
@@ -1050,6 +1110,26 @@ public class DataFrame implements Serializable {
       Row newRow = new Row();
       for (colno = 0; colno < colCnt; colno++) {
         newRow.add(colNames.get(colno), row.get(colno));
+//      }
+//
+//      String newPatternStr;
+//      if (ignoreCase) {
+//        newPatternStr = "";
+//        String ignorePatternStr;
+//        for (int i = 0; i < patternStr.length(); i++) {
+//          ignorePatternStr = "[";
+//          String c = String.valueOf(patternStr.charAt(i));
+//          ignorePatternStr += c.toUpperCase() + c.toLowerCase();
+//          newPatternStr += ignorePatternStr;
+//        }
+//      } else {
+//        newPatternStr = ""kkkkk
+//      }
+//
+//
+//          if (patternStr[0] == patternStr[1])
+//            break;
+//        }
       }
 
       String targetStr = (String)row.get(targetColno);

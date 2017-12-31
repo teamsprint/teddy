@@ -397,11 +397,37 @@ public class DataFrameTest {
     DataFrame contract = new DataFrame();
     contract.setGrid(grids.get("contract"));
     contract = prepare_contract(contract);
-    contract.show(100);
+    contract.show();
 
     String ruleString = "extract col: cdate on: /\\w+/ quote: '\"' limit: 3";
     Rule rule = new RuleVisitorParser().parse(ruleString);
     DataFrame newDf = contract.doExtract((Extract)rule);
+    newDf.show();
+  }
+
+  @Test
+  public void test_countpattern() throws IOException, TeddyException {
+    DataFrame contract = new DataFrame();
+    contract.setGrid(grids.get("contract"));
+    contract = prepare_contract(contract);
+    contract.show();
+
+    String ruleString = "countpattern col: cdate on: '2'";
+    Rule rule = new RuleVisitorParser().parse(ruleString);
+    DataFrame newDf = contract.doCountPattern((CountPattern) rule);
+    newDf.show();
+  }
+
+  @Test
+  public void test_countpattern_regex() throws IOException, TeddyException {
+    DataFrame contract = new DataFrame();
+    contract.setGrid(grids.get("contract"));
+    contract = prepare_contract(contract);
+    contract.show();
+
+    String ruleString = "countpattern col: cdate on: /0\\d+/";
+    Rule rule = new RuleVisitorParser().parse(ruleString);
+    DataFrame newDf = contract.doCountPattern((CountPattern) rule);
     newDf.show();
   }
 
