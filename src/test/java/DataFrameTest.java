@@ -510,9 +510,27 @@ public class DataFrameTest {
     DataFrame newDf = contract.doNest((Nest)rule);
     newDf.show();
 
-    ruleString = "unnest col: pcode into: map idx: 'pcode3'"; // into: is not used
+    ruleString = "unnest col: pcode into: map idx: 'pcode3'"; // into: is not used (remains for backward-compatability)
     rule = new RuleVisitorParser().parse(ruleString);
     newDf = newDf.doUnnest((Unnest)rule);
+    newDf.show();
+  }
+
+  @Test
+  public void test_flatten() throws IOException, TeddyException {
+    DataFrame contract = new DataFrame();
+    contract.setGrid(grids.get("contract"));
+    contract = prepare_contract(contract);
+    contract.show();
+
+    String ruleString = "nest col: pcode1, pcode2, pcode3, pcode4 into: array as: pcode";
+    Rule rule = new RuleVisitorParser().parse(ruleString);
+    DataFrame newDf = contract.doNest((Nest)rule);
+    newDf.show();
+
+    ruleString = "flatten col: pcode";
+    rule = new RuleVisitorParser().parse(ruleString);
+    newDf = newDf.doFlatten((Flatten) rule);
     newDf.show();
   }
 

@@ -1019,6 +1019,61 @@ public class DataFrame implements Serializable {
     return newDf;
   }
 
+  public DataFrame doFlatten(Flatten flatten) throws TeddyException {
+    String targetColName = flatten.getCol();
+    int targetColno = -1;
+    int colno;
+
+    for (colno = 0; colno < colCnt; colno++) {
+      if (colNames.get(colno).equals(targetColName)) {
+        if (colTypes.get(colno) != TYPE.ARRAY) {
+          throw new TeddyException("doFlatten(): works only on ARRAY: " + colTypes.get(colno));
+        }
+        targetColno = colno;
+        break;
+      }
+    }
+    if (colno == colCnt) {
+      throw new TeddyException("doFlatten(): column not found: " + targetColName);
+    }
+
+    DataFrame newDf = new DataFrame();
+    newDf.colCnt = colCnt;
+    newDf.colNames.addAll(colNames);
+    for (colno = 0; colno < colNames.size(); colno++) {
+      if (colNames.get(colno).equals(targetColName)) {
+        newDf.colTypes.add(TYPE.STRING);
+      } else {
+        newDf.colTypes.add(colTypes.get(colno));
+      }
+    }
+
+    Iterator<Row> iter = objGrid.iterator();
+    Row row = null;     // of aggregatedDf
+    Row newRow = null;  // of pivotedDf
+    while (iter.hasNext()) {
+      row = iter.next();  // of aggregatedDf
+
+      String csv = ((String)row.get(targetColno)).substring(1);
+      csv = csv.substring(0, csv.length() - 1);
+      String[] values = csv.split(",");
+      for (int i = 0; i < values.length; i++) {
+        String value = stripDoubleQuote(values[i]);
+        newRow = new Row();
+        for (colno = 0; colno < colNames.size(); colno++) {
+          String colName = colNames.get(colno);
+          if (colno == targetColno) {
+            newRow.add(colName, value);
+          } else {
+            newRow.add(colName, row.get(colNames.get(colno)));
+          }
+        }
+        newDf.objGrid.add(newRow);
+      }
+    }
+    return newDf;
+  }
+
   public DataFrame doMerge(Merge merge) throws TeddyException {
     Expression targetExpr = merge.getCol();
     String with = stripSingleQuote(merge.getWith());
