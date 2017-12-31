@@ -568,56 +568,117 @@ public class DataFrame implements Serializable {
     objGrid.add(newRow);
   }
 
-  public DataFrame join(DataFrame rightDataFrame, List<String> leftSelectColNames, List<String> rightSelectColNames,
+  private void gatherPredicates(Expression expr, DataFrame rightDf,
+                                List<Identifier.IdentifierExpr> leftPredicates,
+                                List<Identifier.IdentifierExpr> rightPredicates) throws TeddyException {
+    int colno;
+
+    if (expr instanceof Expr.BinAndExpr) {
+      gatherPredicates(((Expr.BinAndExpr) expr).getLeft(), rightDf, leftPredicates, rightPredicates);
+      gatherPredicates(((Expr.BinAndExpr) expr).getRight(), rightDf, leftPredicates, rightPredicates);
+    }
+    else if (expr instanceof Expr.BinAsExpr) {
+      if (!((Expr.BinAsExpr) expr).getOp().equals("=")) {
+        throw new TeddyException("join(): join type not suppoerted: op: " + ((Expr.BinAsExpr) expr).getOp());
+      }
+
+      for (colno = 0; colno < colCnt; colno++) {
+        if (colNames.get(colno).equals(((Expr.BinAsExpr) expr).getLeft().toString())) {
+          leftPredicates.add((Identifier.IdentifierExpr) ((Expr.BinAsExpr) expr).getLeft());
+          break;
+        }
+      }
+      if (colno == colCnt) {
+        throw new TeddyException("join(): left predicate not found: " + expr.toString());
+      }
+
+      for (colno = 0; colno < colCnt; colno++) {
+        if (rightDf.colNames.get(colno).equals(((Expr.BinAsExpr) expr).getRight().toString())) {
+          rightPredicates.add((Identifier.IdentifierExpr) ((Expr.BinAsExpr) expr).getRight());
+          break;
+        }
+      }
+      if (colno == colCnt) {
+        throw new TeddyException("join(): right predicate not found: " + expr.toString());
+      }
+    }
+  }
+
+  public DataFrame join(DataFrame rightDf, List<String> leftSelectColNames, List<String> rightSelectColNames,
                         String condition, String joinType, int limitRowCnt) throws TeddyException {
     String fakeRuleString = "keep row: " + condition;
     Rule rule = new RuleVisitorParser().parse(fakeRuleString);
-    Expr.BinAsExpr predicate = (Expr.BinAsExpr)((Keep)rule).getRow();
-    if (!predicate.getOp().equals("=")) {
-      throw new TeddyException("join(): join type not suppoerted: op: " + predicate.getOp());
+
+    List<Identifier.IdentifierExpr> leftPredicates = new ArrayList<>();
+    List<Identifier.IdentifierExpr> rightPredicates = new ArrayList<>();
+
+    gatherPredicates(((Keep)rule).getRow(), rightDf, leftPredicates, rightPredicates);
+
+    Expression expr = ((Keep)rule).getRow();
+    gatherPredicates(expr, rightDf, leftPredicates, rightPredicates);
+
+    List<Expr.BinEqExpr> eqExprs = new ArrayList<>();
+    for (int i = 0; i < leftPredicates.size(); i++) {
+      eqExprs.add(new Expr.BinEqExpr("=", leftPredicates.get(i), rightPredicates.get(i)));
     }
-    Expr.BinEqExpr eqExpr = new Expr.BinEqExpr(predicate.getOp(), predicate.getLeft(), predicate.getRight());
 
     DataFrame newDf = new DataFrame();
     newDf.colCnt = leftSelectColNames.size() + rightSelectColNames.size();
     for (String colName : leftSelectColNames) {
       newDf.colNames.add(colName);
-      newDf.colTypes.add(colTypes.get(colNames.indexOf(colName)));
+      newDf.colTypes.add(getTypeOfColumn(colName));
     }
     for (String colName : rightSelectColNames) {
       newDf.colNames.add(checkRightColName(colName));  // 같은 column이름이 있을 경우 right에서 온 것에 "r_"을 붙여준다. (twinkle과 동일한 규칙)
-      newDf.colTypes.add(rightDataFrame.colTypes.get(rightDataFrame.colNames.indexOf(colName)));
+      newDf.colTypes.add(rightDf.getTypeOfColumn(colName));
+
     }
 
-    Identifier.IdentifierExpr left = (Identifier.IdentifierExpr) eqExpr.getLeft();    // loop 밖으로
-    Identifier.IdentifierExpr right = (Identifier.IdentifierExpr) eqExpr.getRight();
+    List<Object[]> lobjsList = new ArrayList<>();
+    List<Object[]> robjsList = new ArrayList<>();
 
-    Object[] lobjs = new Object[objGrid.size()];
-    Object[] robjs = new Object[rightDataFrame.objGrid.size()];
+    for (int i = 0; i < leftPredicates.size(); i++) {
+      lobjsList.add(new Object[objGrid.size()]);
+      robjsList.add(new Object[rightDf.objGrid.size()]);
+    }
 
     Row lrow = null;
     Row rrow = null;
     for (int lrowno = 0; lrowno < objGrid.size(); lrowno++) {
       lrow = objGrid.get(lrowno);
-      lobjs[lrowno] = left.eval(lrow).value();
+      for (int i = 0; i < leftPredicates.size(); i++) {
+        (lobjsList.get(i))[lrowno] = leftPredicates.get(i).eval(lrow).value();
+      }
     }
-    for (int rrowno = 0; rrowno < rightDataFrame.objGrid.size(); rrowno++) {
-      rrow = rightDataFrame.objGrid.get(rrowno);
-      robjs[rrowno] = right.eval(rrow).value();
+    for (int rrowno = 0; rrowno < rightDf.objGrid.size(); rrowno++) {
+      rrow = rightDf.objGrid.get(rrowno);
+      for (int i = 0; i < leftPredicates.size(); i++) {
+        (robjsList.get(i))[rrowno] = rightPredicates.get(i).eval(rrow).value();
+      }
     }
 
-    // 1줄만 type check
-    if (lrow == null || rrow == null || left.eval(lrow).type() != right.eval(rrow).type()) {
-      throw new TeddyException(String.format("join(): predicate type mismatch: left=%s right%s",
-              lrow == null ? "null" : left.eval(lrow).type().name(),
-              rrow == null ? "null" : right.eval(rrow).type().name()));
+    // 각 predicate column 별로 1줄만 type check
+    for (int i = 0; i < leftPredicates.size(); i++) {
+      if (lrow == null || rrow == null || leftPredicates.get(i).eval(lrow).type() != rightPredicates.get(i).eval(rrow).type()) {
+        throw new TeddyException(String.format("join(): predicate type mismatch: left=%s right=%s",
+                lrow == null ? "null" : leftPredicates.get(i).eval(lrow).type().name(),
+                rrow == null ? "null" : rightPredicates.get(i).eval(rrow).type().name()));
+      }
     }
 
     for (int lrowno = 0; lrowno < objGrid.size(); lrowno++) {
-      for (int rrowno = 0; rrowno < rightDataFrame.objGrid.size(); rrowno++) {
-        if (lobjs[lrowno].equals(robjs[rrowno])) {
+      for (int rrowno = 0; rrowno < rightDf.objGrid.size(); rrowno++) {
+        boolean equal = true;
+        for (int i = 0; i < lobjsList.size(); i++) {
+          if (!(lobjsList.get(i))[lrowno].equals((robjsList.get(i))[rrowno])) {
+            equal = false;
+            break;
+          }
+        }
+
+        if (equal) {
           lrow = objGrid.get(lrowno);
-          rrow = rightDataFrame.objGrid.get(rrowno);
+          rrow = rightDf.objGrid.get(rrowno);
           newDf.addJoinedRow(lrow, leftSelectColNames, rrow, rightSelectColNames);
 
           if (newDf.objGrid.size() == limitRowCnt) {

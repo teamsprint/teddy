@@ -65,6 +65,7 @@ public class DataFrameTest {
   public static void setUp() throws Exception {
     loadGridCsv("sample", "metatron_dataset/small/sample.csv");
     loadGridCsv("contract", "data/ibk_contract_n10000.csv");
+    loadGridCsv("product", "data/ibk_product_n5000.csv");
     loadGridCsv("store", "data/ibk_store_n10000.csv");
     loadGridCsv("store1", "data/ibk_store_n3000_1.csv");
     loadGridCsv("store2", "data/ibk_store_n3000_2.csv");
@@ -298,6 +299,22 @@ public class DataFrameTest {
     return apply_rule(contract, ruleStrings);
   }
 
+  private DataFrame prepare_product(DataFrame product) throws TeddyException {
+    List<String> ruleStrings = new ArrayList<>();
+    ruleStrings.add("rename col: column1 to: pcode1");
+    ruleStrings.add("rename col: column2 to: pcode2");
+    ruleStrings.add("rename col: column3 to: pcode3");
+    ruleStrings.add("rename col: column4 to: pcode4");
+
+    ruleStrings.add("settype col: pcode1 type: long");
+    ruleStrings.add("settype col: pcode2 type: long");
+    ruleStrings.add("settype col: pcode3 type: long");
+    ruleStrings.add("settype col: pcode4 type: long");
+    ruleStrings.add("rename col: column5 to: pcode");
+
+    return apply_rule(product, ruleStrings);
+  }
+
   private DataFrame prepare_store(DataFrame store) throws TeddyException {
     List<String> ruleStrings = new ArrayList<>();
     ruleStrings.add("header rownum: 1");
@@ -325,6 +342,28 @@ public class DataFrameTest {
     List<String> leftSelectColNames = Arrays.asList(new String[]{"cdate", "pcode1", "pcode2", "pcode3", "pcode4", "customer_id", "detail_store_code"});
     List<String> rightSelectColNames = Arrays.asList(new String[]{"detail_store_code", "customer_id", "detail_store_name"});
     DataFrame newDf = contract.join(store, leftSelectColNames, rightSelectColNames, "customer_id = customer_id", "inner", 10000);
+    newDf.show();
+  }
+
+  @Test
+  public void test_join_multi_key() throws IOException, TeddyException {
+    DataFrame contract = new DataFrame();
+    contract.setGrid(grids.get("contract"));
+    contract.show();
+
+    contract = prepare_contract(contract);
+    contract.show();
+
+    DataFrame product = new DataFrame();
+    product.setGrid(grids.get("product"));
+    product.show();
+
+    product = prepare_product(product);
+    product.show();
+
+    List<String> leftSelectColNames = Arrays.asList(new String[]{"cdate", "pcode1", "pcode2", "pcode3", "pcode4", "customer_id", "detail_store_code"});
+    List<String> rightSelectColNames = Arrays.asList(new String[]{"pcode1", "pcode2", "pcode3", "pcode4", "pcode"});
+    DataFrame newDf = contract.join(product, leftSelectColNames, rightSelectColNames, "pcode1=pcode1 && pcode2=pcode2 && pcode3=pcode3 && pcode4=pcode4", "inner", 10000);
     newDf.show();
   }
 
