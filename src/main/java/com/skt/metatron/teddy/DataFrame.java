@@ -604,18 +604,36 @@ public class DataFrame implements Serializable {
     }
   }
 
-  public DataFrame join(DataFrame rightDf, List<String> leftSelectColNames, List<String> rightSelectColNames,
-                        String condition, String joinType, int limitRowCnt) throws TeddyException {
-    String fakeRuleString = "keep row: " + condition;
-    Rule rule = new RuleVisitorParser().parse(fakeRuleString);
+  private List<String> getIdentifierList(Expression expr) {
+    List<String> colNames = new ArrayList<>();
+    if (expr instanceof Identifier.IdentifierExpr) {
+      colNames.add(((Identifier.IdentifierExpr) expr).getValue());
+    } else if (expr instanceof Identifier.IdentifierArrayExpr) {
+      colNames.addAll(((Identifier.IdentifierArrayExpr) expr).getValue());
+    } else {
+      assert false : expr;
+    }
+    return colNames;
+  }
 
+  public DataFrame doJoin(Join join, DataFrame rightDf, int limitRowCnt) throws TeddyException {
+    Expression dataset2 = join.getDataset2();
+    Expression leftSelectCol = join.getLeftSelectCol();
+    Expression rightSelectCol = join.getRightSelectCol();
+    Expression condition = join.getCondition();
+    String joinType = join.getJoinType();
+
+    List<String> leftSelectColNames = getIdentifierList(leftSelectCol);
+    List<String> rightSelectColNames = getIdentifierList(rightSelectCol);
+
+    return joinInternal(rightDf, leftSelectColNames, rightSelectColNames, condition, joinType, limitRowCnt);
+  }
+
+  public DataFrame joinInternal(DataFrame rightDf, List<String> leftSelectColNames, List<String> rightSelectColNames,
+                        Expression condition, String joinType, int limitRowCnt) throws TeddyException {
     List<Identifier.IdentifierExpr> leftPredicates = new ArrayList<>();
     List<Identifier.IdentifierExpr> rightPredicates = new ArrayList<>();
-
-    gatherPredicates(((Keep)rule).getRow(), rightDf, leftPredicates, rightPredicates);
-
-    Expression expr = ((Keep)rule).getRow();
-    gatherPredicates(expr, rightDf, leftPredicates, rightPredicates);
+    gatherPredicates(condition, rightDf, leftPredicates, rightPredicates);
 
     List<Expr.BinEqExpr> eqExprs = new ArrayList<>();
     for (int i = 0; i < leftPredicates.size(); i++) {
