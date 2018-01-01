@@ -23,14 +23,14 @@ import java.util.regex.Pattern;
 public class DataFrame implements Serializable {
   private static Logger LOGGER = LoggerFactory.getLogger(DataFrame.class);
 
-  enum TYPE {
+  enum DataType {
     DOUBLE,
     LONG,
     STRING,
     ARRAY,
     MAP,
     BOOLEAN,
-    INVALID
+    UNKNOWN
   }
 
   enum AggrType {
@@ -41,20 +41,20 @@ public class DataFrame implements Serializable {
     MAX
   }
 
-  private static TYPE getType(ExprType exprType) {
+  private static DataType getType(ExprType exprType) {
     switch (exprType) {
       case DOUBLE:
-        return TYPE.DOUBLE;
+        return DataType.DOUBLE;
       case LONG:
-        return TYPE.LONG;
+        return DataType.LONG;
       case STRING:
-        return TYPE.STRING;
+        return DataType.STRING;
     }
     assert false : exprType;
-    return TYPE.INVALID;
+    return DataType.UNKNOWN;
   }
 
-  private TYPE getTypeOfColumn(String colName) throws TeddyException {
+  private DataType getTypeOfColumn(String colName) throws TeddyException {
     int i;
     for (i = 0; i < colCnt; i++) {
       if (colNames.get(i).equals(colName)) {
@@ -64,10 +64,10 @@ public class DataFrame implements Serializable {
     throw new TeddyException("getTypeOfColumn(): column not found: " + colName);
   }
 
-  private int colCnt;
-  private List<String> colNames;
-  private List<TYPE> colTypes;
-  private List<Row> objGrid;
+  public int colCnt;
+  public List<String> colNames;
+  public List<DataType> colTypes;
+  public List<Row> objGrid;
 
   // 처음 data를 가져오는 정보부터, 현재 dataframe에 이르기까지의 모든 정보
   // 내 스스로는 필요없음. upstreamDataFrame의 내용이 필요할 때가 있음 (join, union, wrangled -> wrangled)
@@ -101,7 +101,7 @@ public class DataFrame implements Serializable {
 
       for (int colno = 1; colno <= colCnt; colno++) {
         colNames.add("column" + colno);
-        colTypes.add(TYPE.STRING);
+        colTypes.add(DataType.STRING);
       }
     }
 
@@ -289,8 +289,8 @@ public class DataFrame implements Serializable {
     return json;
   }
 
-  private TYPE decideType(Expression expr) throws TeddyException {
-    TYPE resultType = TYPE.INVALID;
+  private DataType decideType(Expression expr) throws TeddyException {
+    DataType resultType = DataType.UNKNOWN;
     String errmsg;
     int i;
 
@@ -322,8 +322,8 @@ public class DataFrame implements Serializable {
     }
     // Binary Operation
     else if (expr instanceof Expr.BinaryNumericOpExprBase) {
-      TYPE left = decideType(((Expr.BinaryNumericOpExprBase) expr).getLeft());
-      TYPE right = decideType(((Expr.BinaryNumericOpExprBase) expr).getRight());
+      DataType left = decideType(((Expr.BinaryNumericOpExprBase) expr).getLeft());
+      DataType right = decideType(((Expr.BinaryNumericOpExprBase) expr).getRight());
       if (left == right) {
         return left;
       }
@@ -334,10 +334,10 @@ public class DataFrame implements Serializable {
     else if (expr instanceof Expr.FunctionExpr) {
       List<Expr> args = ((Expr.FunctionExpr) expr).getArgs();
       if (args.size() == 1) {
-        resultType = TYPE.BOOLEAN;
+        resultType = DataType.BOOLEAN;
       } else if (args.size() == 3) {
         if (args.get(1) instanceof Constant.StringExpr && args.get(2) instanceof Constant.StringExpr) {
-          return TYPE.STRING;
+          return DataType.STRING;
         }
       } else {
         throw new TeddyException("decideType(): invalid function arguments: " + args.size());
@@ -348,7 +348,7 @@ public class DataFrame implements Serializable {
   }
 
   private Object eval(Expression expr, int rowno) throws TeddyException {
-    TYPE resultType = TYPE.INVALID;
+    DataType resultType = DataType.UNKNOWN;
     Object resultObj = null;
     String errmsg;
     int colno;
@@ -404,7 +404,7 @@ public class DataFrame implements Serializable {
     return resultObj;
   }
 
-  private Object cast(Object obj, TYPE fromType, TYPE toType) throws TeddyException {
+  private Object cast(Object obj, DataType fromType, DataType toType) throws TeddyException {
     switch (toType) {
       case DOUBLE:
         switch (fromType) {
@@ -442,7 +442,7 @@ public class DataFrame implements Serializable {
   public DataFrame doSetType(SetType setType) throws TeddyException {
     DataFrame newDf = new DataFrame();
     String targetColName = setType.getCol();
-    TYPE toType = getType(ExprType.bestEffortOf(setType.getType()));
+    DataType toType = getType(ExprType.bestEffortOf(setType.getType()));
     int targetColNo = -1;
 
     newDf.colCnt = colCnt;
@@ -560,7 +560,7 @@ public class DataFrame implements Serializable {
   public void addJoinedRow(Row lrow, List<String> leftSelectColNames, Row rrow, List<String> rightSelectColNames) {
     Row newRow = new Row();
     for (String colName : leftSelectColNames) {
-    newRow.add(colName, lrow.get(colName));                             // left에서 온 컬럼은 이름 그대로 넣음
+      newRow.add(colName, lrow.get(colName));                             // left에서 온 컬럼은 이름 그대로 넣음
     }
     for (String colName : rightSelectColNames) {
       newRow.add(this.colNames.get(newRow.colCnt), rrow.get(colName));  // 필요한 경우 "r_"이 붙은 컬럼 이름 (여기까지 온 것은 이미 붙은 상황)
@@ -726,7 +726,7 @@ public class DataFrame implements Serializable {
     } else {
       for (colno = 0; colno < colCnt; colno++) {
         if (colNames.get(colno).equals(targetColName)) {
-          if (colTypes.get(colno) != TYPE.STRING) {
+          if (colTypes.get(colno) != DataType.STRING) {
             throw new TeddyException("doExtract(): works only on STRING: " + colTypes.get(colno));
           }
           targetColno = colno;
@@ -747,7 +747,7 @@ public class DataFrame implements Serializable {
       }
       newColNames.add(newColName);  // for newRow add
       newDf.colNames.add(newColName);
-      newDf.colTypes.add(TYPE.STRING);
+      newDf.colTypes.add(DataType.STRING);
       newDf.colCnt++;
     }
 
@@ -795,7 +795,7 @@ public class DataFrame implements Serializable {
     } else {
       for (colno = 0; colno < colCnt; colno++) {
         if (colNames.get(colno).equals(targetColName)) {
-          if (colTypes.get(colno) != TYPE.STRING) {
+          if (colTypes.get(colno) != DataType.STRING) {
             throw new TeddyException("doCountPattern(): works only on STRING: " + colTypes.get(colno));
           }
           targetColno = colno;
@@ -811,7 +811,7 @@ public class DataFrame implements Serializable {
     String newColName = checkNewColName("countpattern_" + targetColName, true);
     newDf.colCnt++;
     newDf.colNames.add(newColName);
-    newDf.colTypes.add(TYPE.LONG);
+    newDf.colTypes.add(DataType.LONG);
 
     String patternStr;
     if (expr instanceof Constant.StringExpr) {
@@ -923,7 +923,7 @@ public class DataFrame implements Serializable {
 
     newDf.colCnt++;
     newDf.colNames.add(as);
-    newDf.colTypes.add(into.equalsIgnoreCase("ARRAY") ? TYPE.ARRAY : TYPE.MAP);
+    newDf.colTypes.add(into.equalsIgnoreCase("ARRAY") ? DataType.ARRAY : DataType.MAP);
 
     for (rowno = 0; rowno < objGrid.size(); rowno++) {
       Row row  = objGrid.get(rowno);
@@ -932,7 +932,7 @@ public class DataFrame implements Serializable {
         newRow.add(colNames.get(colno), row.get(colno));
       }
 
-      if (newDf.colTypes.get(newDf.colCnt - 1) == TYPE.ARRAY) {
+      if (newDf.colTypes.get(newDf.colCnt - 1) == DataType.ARRAY) {
         List<String> quotedValues = new ArrayList<>();
         for (String colName : targetColNames) {
           quotedValues.add("\"" + row.get(colName) + "\"");
@@ -984,7 +984,7 @@ public class DataFrame implements Serializable {
 
     for (colno = 0; colno < colCnt; colno++) {
       if (colNames.get(colno).equals(targetColName)) {
-        if (colTypes.get(colno) != TYPE.ARRAY && colTypes.get(colno) != TYPE.MAP) {
+        if (colTypes.get(colno) != DataType.ARRAY && colTypes.get(colno) != DataType.MAP) {
           throw new TeddyException("doUnnest(): works only on ARRAY/MAP: " + colTypes.get(colno));
         }
         targetColno = colno;
@@ -999,7 +999,7 @@ public class DataFrame implements Serializable {
     String mapKey = null;
     String newColName;
 
-    if (colTypes.get(targetColno) == TYPE.ARRAY) {
+    if (colTypes.get(targetColno) == DataType.ARRAY) {
       // 컬럼이름은 언제나 unnest_0
       // row별로 fetch는 arrayIdx로
       if (idx instanceof Constant.StringExpr) {   // supports StringExpr for backward-compatability
@@ -1030,7 +1030,7 @@ public class DataFrame implements Serializable {
 
     newDf.colCnt++;
     newDf.colNames.add(newColName);
-    newDf.colTypes.add(TYPE.STRING);
+    newDf.colTypes.add(DataType.STRING);
 
     ObjectMapper mapper = new ObjectMapper();
 
@@ -1041,7 +1041,7 @@ public class DataFrame implements Serializable {
         newRow.add(colNames.get(colno), row.get(colno));
       }
 
-      if (newDf.colTypes.get(targetColno) == TYPE.ARRAY) {
+      if (newDf.colTypes.get(targetColno) == DataType.ARRAY) {
         String csv = ((String)row.get(targetColno)).substring(1);
         csv = csv.substring(0, csv.length() - 1);
         String[] values = csv.split(",");
@@ -1085,7 +1085,7 @@ public class DataFrame implements Serializable {
 
     for (colno = 0; colno < colCnt; colno++) {
       if (colNames.get(colno).equals(targetColName)) {
-        if (colTypes.get(colno) != TYPE.ARRAY) {
+        if (colTypes.get(colno) != DataType.ARRAY) {
           throw new TeddyException("doFlatten(): works only on ARRAY: " + colTypes.get(colno));
         }
         targetColno = colno;
@@ -1101,7 +1101,7 @@ public class DataFrame implements Serializable {
     newDf.colNames.addAll(colNames);
     for (colno = 0; colno < colCnt; colno++) {
       if (colNames.get(colno).equals(targetColName)) {
-        newDf.colTypes.add(TYPE.STRING);
+        newDf.colTypes.add(DataType.STRING);
       } else {
         newDf.colTypes.add(colTypes.get(colno));
       }
@@ -1148,7 +1148,7 @@ public class DataFrame implements Serializable {
 
     newDf.colCnt++;
     newDf.colNames.add(newColName);
-    newDf.colTypes.add(TYPE.STRING);
+    newDf.colTypes.add(DataType.STRING);
 
     List<String> targetColNames = null;
     if (targetExpr instanceof Identifier.IdentifierExpr) {
@@ -1195,7 +1195,7 @@ public class DataFrame implements Serializable {
 
     for (colno = 0; colno < colCnt; colno++) {
       if (colNames.get(colno).equals(targetColName)) {
-        if (colTypes.get(colno) != TYPE.STRING) {
+        if (colTypes.get(colno) != DataType.STRING) {
           throw new TeddyException("doSplit(): works only on STRING: " + colTypes.get(colno));
         }
         targetColno = colno;
@@ -1216,7 +1216,7 @@ public class DataFrame implements Serializable {
       String newColName = checkNewColName("split_" + targetColName + (i + 1), true);
       newColNames.add(newColName);
       newDf.colNames.add(newColName);
-      newDf.colTypes.add(TYPE.STRING);
+      newDf.colTypes.add(DataType.STRING);
       newDf.colCnt++;
     }
 
@@ -1277,7 +1277,7 @@ public class DataFrame implements Serializable {
     List<Integer> targetAggrColnos = new ArrayList<>();   // 각 aggrValue는 1개의 target column을 가짐
     List<AggrType> targetAggrTypes = new ArrayList<>();
     List<String> resultColNames = new ArrayList<>();
-    List<TYPE> resultColTypes = new ArrayList<>();
+    List<DataType> resultColTypes = new ArrayList<>();
     Map<Object, Object> groupByBuckets = new HashMap<>();
     int rowno, colno;
 
@@ -1289,7 +1289,7 @@ public class DataFrame implements Serializable {
       if (targetExprStr.toUpperCase().startsWith("COUNT")) {
         aggrType = AggrType.COUNT;
         resultColNames.add(checkNewColName("count", true));
-        resultColTypes.add(TYPE.LONG);
+        resultColTypes.add(DataType.LONG);
       } else {
         Pattern pattern = Pattern.compile("\\w+\\((\\w+)\\)");
         Matcher matcher = pattern.matcher(targetExprStr);
@@ -1315,7 +1315,7 @@ public class DataFrame implements Serializable {
           if (colName.equals(targetColName)) {
             targetAggrColnos.add(colno);
             resultColNames.add(checkNewColName(aggrType.name().toLowerCase() + "_" + colName, true));
-            resultColTypes.add((aggrType == AggrType.AVG) ? TYPE.DOUBLE : getTypeOfColumn(colName));
+            resultColTypes.add((aggrType == AggrType.AVG) ? DataType.DOUBLE : getTypeOfColumn(colName));
             break;
           }
         }
@@ -1364,10 +1364,10 @@ public class DataFrame implements Serializable {
           if (targetAggrTypes.get(j) == AggrType.AVG) {
             Map<String, Object> avgObj = (Map<String, Object>) aggregatedValues.get(j);
             avgObj.put("count", (Long)avgObj.get("count") + 1);
-            if (resultColTypes.get(j) == TYPE.LONG) {
+            if (resultColTypes.get(j) == DataType.LONG) {
               avgObj.put("sum", (Long)avgObj.get("sum") + (Long)row.get(targetAggrColnos.get(j)));
             } else {
-              if (colTypes.get(targetAggrColnos.get(j)) == TYPE.LONG) {
+              if (colTypes.get(targetAggrColnos.get(j)) == DataType.LONG) {
                 avgObj.put("sum", (Double)avgObj.get("sum") + Double.valueOf((Long)row.get(targetAggrColnos.get(j))));
               } else {
                 avgObj.put("sum", (Double) avgObj.get("sum") + (Double) row.get(targetAggrColnos.get(j)));
@@ -1379,14 +1379,14 @@ public class DataFrame implements Serializable {
             aggregatedValues.set(j, (Long)aggregatedValues.get(j) + 1);
           }
           else if (targetAggrTypes.get(j) == AggrType.SUM) {
-            if (resultColTypes.get(j) == TYPE.LONG) {
+            if (resultColTypes.get(j) == DataType.LONG) {
               aggregatedValues.set(j, (Long)aggregatedValues.get(j) + (Long)row.get(targetAggrColnos.get(j)));
             } else {
               aggregatedValues.set(j, (Double)aggregatedValues.get(j) + (Double)row.get(targetAggrColnos.get(j)));
             }
           }
           else if (targetAggrTypes.get(j) == AggrType.MIN) {
-            if (resultColTypes.get(j) == TYPE.LONG) {
+            if (resultColTypes.get(j) == DataType.LONG) {
               Long newValue = (Long)row.get(targetAggrColnos.get(j));
               if (newValue < (Long)aggregatedValues.get(j)) {
                 aggregatedValues.set(j, newValue);
@@ -1399,7 +1399,7 @@ public class DataFrame implements Serializable {
             }
           }
           else if (targetAggrTypes.get(j) == AggrType.MAX) {
-            if (resultColTypes.get(j) == TYPE.LONG) {
+            if (resultColTypes.get(j) == DataType.LONG) {
               Long newValue = (Long)row.get(targetAggrColnos.get(j));
               if (newValue > (Long)aggregatedValues.get(j)) {
                 aggregatedValues.set(j, newValue);
@@ -1420,7 +1420,7 @@ public class DataFrame implements Serializable {
           if (targetAggrTypes.get(j) == AggrType.AVG) {
             Map<String, Object> avgObj = new HashedMap();
             avgObj.put("count", Long.valueOf(1));
-            if (colTypes.get(targetAggrColnos.get(j)) == TYPE.LONG) {
+            if (colTypes.get(targetAggrColnos.get(j)) == DataType.LONG) {
               avgObj.put("sum", Double.valueOf((Long)row.get(targetAggrColnos.get(j))));
             } else {
               avgObj.put("sum", row.get(targetAggrColnos.get(j)));
@@ -1512,7 +1512,7 @@ public class DataFrame implements Serializable {
   }
 
   // row: row from aggregatedDf
-  private Row newPivotRow(Row row, List<String> colNames, List<TYPE> colTypes, List<String> groupByColNames) throws TeddyException {
+  private Row newPivotRow(Row row, List<String> colNames, List<DataType> colTypes, List<String> groupByColNames) throws TeddyException {
     Row newRow = new Row();
     int colno;
 
@@ -1522,7 +1522,7 @@ public class DataFrame implements Serializable {
 
     // 일단 기본값으로 깔고, 실제 있는 값을 채우기로 함
     for (colno = groupByColNames.size(); colno < colNames.size(); colno++) {
-      TYPE colType = colTypes.get(colno);
+      DataType colType = colTypes.get(colno);
       switch (colType) {
         case DOUBLE:
           newRow.add(colNames.get(colno), Double.valueOf(0));
@@ -1638,13 +1638,13 @@ public class DataFrame implements Serializable {
     for (int i = 0; i < aggrValueStrs.size(); i++) {
       String aggrValueStr = stripSingleQuote(aggrValueStrs.get(i));
       AggrType aggrType;
-      TYPE newColType = TYPE.INVALID;
+      DataType newColType = DataType.UNKNOWN;
       String newColName;
       String aggrTargetColName = null;
 
       if (aggrValueStr.toUpperCase().startsWith("COUNT")) {
         aggrType = AggrType.COUNT;
-        newColType = TYPE.LONG;
+        newColType = DataType.LONG;
       } else {
         if (aggrValueStr.toUpperCase().startsWith(AggrType.SUM.name())) {
           aggrType = AggrType.SUM;
@@ -1668,7 +1668,7 @@ public class DataFrame implements Serializable {
         for (colno = 0; colno < colCnt; colno++) {
           String colName = colNames.get(colno);
           if (colName.equals(aggrTargetColName)) {
-            newColType = (aggrType == AggrType.AVG) ? TYPE.DOUBLE : getTypeOfColumn(colName);
+            newColType = (aggrType == AggrType.AVG) ? DataType.DOUBLE : getTypeOfColumn(colName);
             break;
           }
         }
@@ -1727,7 +1727,7 @@ public class DataFrame implements Serializable {
       for (int i = 0; i < aggrTargetColNames.size(); i++) {
         String aggrTargetColName = aggrTargetColNames.get(i);
         newRow.set(buildPivotNewColName(aggrTypes.get(i), aggrTargetColName, pivotColNames, row),
-                   row.get(i));
+                row.get(i));
       }
     }
     pivotedDf.objGrid.add(newRow);
@@ -1773,9 +1773,9 @@ public class DataFrame implements Serializable {
     }
     for (int i = 0; i < unpivotColNames.size(); i++) {
       String unpivotColName = unpivotColNames.get(i);
-      TYPE unpivotColType = getTypeOfColumn(unpivotColName);
+      DataType unpivotColType = getTypeOfColumn(unpivotColName);
       newDf.colNames.add("key" + (i + 1));
-      newDf.colTypes.add(TYPE.STRING);
+      newDf.colTypes.add(DataType.STRING);
       newDf.colNames.add("value" + (i + 1));
       newDf.colTypes.add(unpivotColType);
 
@@ -1875,7 +1875,7 @@ public class DataFrame implements Serializable {
           } else if (obj2 == null) {
             return 1;
           } else {
-            TYPE colType = row1.cmpKeyTypes.get(i);
+            DataType colType = row1.cmpKeyTypes.get(i);
             switch(colType) {
               case STRING:
                 result = ((String) obj1).compareTo((String) obj2);

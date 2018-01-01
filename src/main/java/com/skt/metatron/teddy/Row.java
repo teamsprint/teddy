@@ -1,6 +1,7 @@
 package com.skt.metatron.teddy;
 
 import com.skt.metatron.discovery.common.preparation.rule.expr.Expr;
+import com.skt.metatron.teddy.DataFrame.DataType;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -13,7 +14,7 @@ public class Row implements Expr.NumericBinding {
   int colCnt;
 
   List<Integer> cmpKeyIdxs;
-  List<DataFrame.TYPE> cmpKeyTypes;
+  List<DataType> cmpKeyTypes;
 
   public Row() {
     objCols = new ArrayList<>();
