@@ -23,6 +23,7 @@ import java.util.regex.Pattern;
 public class DataFrame implements Serializable {
   private static Logger LOGGER = LoggerFactory.getLogger(DataFrame.class);
 
+  // XXX: discovery에 붙는 코드와 유일하게 다른 지점 - discovery 전체적으로 쓰는 DataType이라는 enum의 복사판
   enum DataType {
     DOUBLE,
     LONG,
@@ -708,7 +709,7 @@ public class DataFrame implements Serializable {
     return newDf;
   }
 
-  public DataFrame union(List<DataFrame> slaveDataFrames, int limitRowCnt) throws TeddyException {
+  public DataFrame union(List<DataFrame> slaveDfs, int limitRowCnt) throws TeddyException {
     DataFrame newDf = new DataFrame();
 
     newDf.colCnt = colCnt;
@@ -716,8 +717,8 @@ public class DataFrame implements Serializable {
     newDf.colTypes.addAll(colTypes);
 
     // master도 추가
-    slaveDataFrames.add(0, this);
-    for (DataFrame df : slaveDataFrames) {
+    slaveDfs.add(0, this);
+    for (DataFrame df : slaveDfs) {
       for (Row row : df.objGrid) {
         if (newDf.objGrid.size() >= limitRowCnt) {
           return newDf;
