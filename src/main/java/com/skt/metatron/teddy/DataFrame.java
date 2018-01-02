@@ -610,7 +610,7 @@ public class DataFrame implements Serializable {
     }
   }
 
-  private List<String> getIdentifierList(Expression expr) {
+  static public List<String> getIdentifierList(Expression expr) {
     List<String> colNames = new ArrayList<>();
     if (expr instanceof Identifier.IdentifierExpr) {
       colNames.add(((Identifier.IdentifierExpr) expr).getValue());
