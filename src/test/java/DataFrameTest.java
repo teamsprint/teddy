@@ -102,7 +102,7 @@ public class DataFrameTest {
   public void test_drop() throws TeddyException, IOException {
     DataFrame df = new DataFrame();
     df.setGrid(grids.get("sample"));
-    df = prepare_common(df);
+    df = prepare_sample(df);
     df.show();
 
     String ruleString = "drop col: recent, itemNo";
@@ -115,7 +115,7 @@ public class DataFrameTest {
   public void test_select() throws IOException, TeddyException {
     DataFrame df = new DataFrame();
     df.setGrid(grids.get("sample"));
-    df = prepare_common(df);
+    df = prepare_sample(df);
     df.show();
 
     List<String> targetColNames = new ArrayList<>();
@@ -154,7 +154,7 @@ public class DataFrameTest {
     return df;
   }
 
-  static DataFrame prepare_common(DataFrame df) throws IOException, TeddyException {
+  static DataFrame prepare_sample(DataFrame df) throws IOException, TeddyException {
     List<String> ruleStrings = new ArrayList<>();
 
     ruleStrings.add("rename col: column1 to: launch");
@@ -176,7 +176,7 @@ public class DataFrameTest {
   public void test_rename_settype() throws IOException, TeddyException {
     DataFrame df = new DataFrame();
     df.setGrid(grids.get("sample"));
-    df = prepare_common(df);
+    df = prepare_sample(df);
     df.show();
   }
 
@@ -184,7 +184,7 @@ public class DataFrameTest {
   public void test_set_plus() throws IOException, TeddyException {
     DataFrame df = new DataFrame();
     df.setGrid(grids.get("sample"));
-    df = prepare_common(df);
+    df = prepare_sample(df);
     df.show();
 
     String ruleString = "set col: speed value: speed + 1000";
@@ -197,7 +197,7 @@ public class DataFrameTest {
   public void test_set_minus() throws IOException, TeddyException {
     DataFrame df = new DataFrame();
     df.setGrid(grids.get("sample"));
-    df = prepare_common(df);
+    df = prepare_sample(df);
     df.show();
 
     String ruleString = "set col: speed value: speed - 300";
@@ -211,7 +211,7 @@ public class DataFrameTest {
     DataFrame df = new DataFrame();
     df.setGrid(grids.get("sample"));
     df.show();
-    df = prepare_common(df);
+    df = prepare_sample(df);
 
     String ruleString = "set col: speed value: speed * 10";
     Rule rule = new RuleVisitorParser().parse(ruleString);
@@ -224,7 +224,7 @@ public class DataFrameTest {
     DataFrame df = new DataFrame();
     df.setGrid(grids.get("sample"));
     df.show();
-    df = prepare_common(df);
+    df = prepare_sample(df);
 
     String ruleString = "set col: name value: if(length(name) > 5, '11', '10')";
     Rule rule = new RuleVisitorParser().parse(ruleString);
@@ -236,7 +236,7 @@ public class DataFrameTest {
   public void test_derive_mul() throws IOException, TeddyException {
     DataFrame df = new DataFrame();
     df.setGrid(grids.get("sample"));
-    df = prepare_common(df);
+    df = prepare_sample(df);
     df.show();
 
     String ruleString = "derive as: Turbo value: speed * 10";
@@ -249,7 +249,7 @@ public class DataFrameTest {
   public void test_set_div() throws IOException, TeddyException {
     DataFrame df = new DataFrame();
     df.setGrid(grids.get("sample"));
-    df = prepare_common(df);
+    df = prepare_sample(df);
     df.show();
 
     String ruleString = "set col: speed value: speed / 10";
@@ -262,7 +262,7 @@ public class DataFrameTest {
   public void test_set_div_double() throws IOException, TeddyException {
     DataFrame df = new DataFrame();
     df.setGrid(grids.get("sample"));
-    df = prepare_common(df);
+    df = prepare_sample(df);
     df.show();
 
     String ruleString = "set col: speed value: 3.0 / speed";
@@ -275,7 +275,7 @@ public class DataFrameTest {
   public void test_set_type_mismatch() throws IOException, TeddyException {
     DataFrame df = new DataFrame();
     df.setGrid(grids.get("sample"));
-    df = prepare_common(df);
+    df = prepare_sample(df);
     df.show();
 
     String ruleString = "set col: speed value: speed * '10'";
@@ -445,7 +445,7 @@ public class DataFrameTest {
   public void test_extract() throws IOException, TeddyException {
     DataFrame df = new DataFrame();
     df.setGrid(grids.get("sample"));
-    df = prepare_common(df);
+    df = prepare_sample(df);
     df.show();
 
     String ruleString = "extract col: name on: 'e' quote: '\"' limit: 3";
@@ -497,7 +497,7 @@ public class DataFrameTest {
   public void test_countpattern_ignorecase() throws IOException, TeddyException {
     DataFrame df = new DataFrame();
     df.setGrid(grids.get("sample"));
-    df = prepare_common(df);
+    df = prepare_sample(df);
     df.show();
 
     String ruleString = "countpattern col: name on: 'm'";
@@ -644,7 +644,7 @@ public class DataFrameTest {
   public void test_split_ignorecase() throws IOException, TeddyException {
     DataFrame df = new DataFrame();
     df.setGrid(grids.get("sample"));
-    df = prepare_common(df);
+    df = prepare_sample(df);
     df.show();
 
     String ruleString = "split col: name on: 'm' limit: 2";

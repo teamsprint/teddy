@@ -508,7 +508,12 @@ public class DataFrame implements Serializable {
       Row newRow = new Row();
       for (int colno = 0; colno < newDf.colCnt; colno++) {
         if (colno == targetColNo) {
-          newRow.add(targetColName, eval(expr, rowno));
+          Object resultObj = eval(expr, rowno);
+          if (newDf.colTypes.get(colno) == DataType.BOOLEAN) {
+            newRow.add(targetColName, Boolean.valueOf(((Long)resultObj).longValue() == 1));
+          } else {
+            newRow.add(targetColName, resultObj);
+          }
         } else {
           newRow.add(colNames.get(colno), row.get(colno));
         }
@@ -525,6 +530,11 @@ public class DataFrame implements Serializable {
   public DataFrame doDerive(Derive derive) throws TeddyException {
     String targetColName = derive.getAs();
 
+    // for compatability to twinkle
+    if (targetColName.startsWith("'") && targetColName.endsWith("'")) {
+      targetColName = stripSingleQuote(targetColName);
+    }
+
     // 기존 column 이름과 겹치면 안됨.
     for (int colno = 0; colno < colCnt; colno++) {
       if (colNames.get(colno).equalsIgnoreCase(targetColName)) {
@@ -532,7 +542,7 @@ public class DataFrame implements Serializable {
       }
     }
 
-    return doSetInternal(derive.getAs(), derive.getValue());
+    return doSetInternal(targetColName, derive.getValue());
   }
 
   public DataFrame doHeader(Header header) throws TeddyException {
@@ -943,6 +953,11 @@ public class DataFrame implements Serializable {
       assert false : targetExpr;
     }
 
+    // for compatability to twinkle
+    if (as.startsWith("'") && as.endsWith("'")) {
+      as = stripSingleQuote(as);
+    }
+
     DataFrame newDf = new DataFrame();
     newDf.colCnt = colCnt;
     newDf.colNames.addAll(colNames);
@@ -1165,6 +1180,11 @@ public class DataFrame implements Serializable {
     String with = stripSingleQuote(merge.getWith());
     String as = stripSingleQuote(merge.getAs());
     int rowno, colno;
+
+    // for compatability to twinkle
+    if (as.startsWith("'") && as.endsWith("'")) {
+      as = stripSingleQuote(as);
+    }
 
     String newColName = checkNewColName(as, true);
 
