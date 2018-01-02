@@ -249,6 +249,19 @@ public class DataFrameTest {
   }
 
   @Test
+  public void test_set_div_double() throws IOException, TeddyException {
+    DataFrame df = new DataFrame();
+    df.setGrid(grids.get("sample"));
+    df = prepare_common(df);
+    df.show();
+
+    String ruleString = "set col: speed value: 3.0 / speed";
+    Rule rule = new RuleVisitorParser().parse(ruleString);
+    DataFrame newDf = df.doSet((Set)rule);
+    newDf.show();
+  }
+
+  @Test
   public void test_set_type_mismatch() throws IOException, TeddyException {
     DataFrame df = new DataFrame();
     df.setGrid(grids.get("sample"));

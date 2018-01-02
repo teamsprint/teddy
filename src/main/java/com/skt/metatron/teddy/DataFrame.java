@@ -332,6 +332,9 @@ public class DataFrame implements Serializable {
       DataType right = decideType(((Expr.BinaryNumericOpExprBase) expr).getRight());
       if (left == right) {
         return left;
+      } else if (left == DataType.DOUBLE && right == DataType.LONG || left == DataType.LONG && right == DataType.DOUBLE) {
+        // 한쪽이 double인 경우는 허용
+        return DataType.DOUBLE;
       }
       String msg = String.format("decideType(): type mismatch: left=%s right=%s expr=%s", left, right, expr);
       throw new TeddyException(msg);
