@@ -1317,6 +1317,7 @@ public class DataFrame implements Serializable {
         aggrType = AggrType.COUNT;
         resultColNames.add(checkNewColName("count", true));
         resultColTypes.add(DataType.LONG);
+        targetAggrColnos.add(-1);
       } else {
         Pattern pattern = Pattern.compile("\\w+\\((\\w+)\\)");
         Matcher matcher = pattern.matcher(targetExprStr);
@@ -1498,7 +1499,9 @@ public class DataFrame implements Serializable {
     List<String> targetExprStrs = new ArrayList<>();      // sum(x), avg(x), count() 등의 expression string
 
     // group by expression -> group by colnames
-    if (groupByColExpr instanceof Identifier.IdentifierExpr) {
+    if (groupByColExpr == null) {
+      /* NOP */
+    } else if (groupByColExpr instanceof Identifier.IdentifierExpr) {
       groupByColNames.add(((Identifier.IdentifierExpr) groupByColExpr).getValue());
     } else if (groupByColExpr instanceof Identifier.IdentifierArrayExpr) {
       groupByColNames.addAll(((Identifier.IdentifierArrayExpr) groupByColExpr).getValue());

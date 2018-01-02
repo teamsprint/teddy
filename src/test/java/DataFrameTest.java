@@ -1,6 +1,5 @@
 import com.skt.metatron.discovery.common.preparation.RuleVisitorParser;
 import com.skt.metatron.discovery.common.preparation.rule.*;
-import com.skt.metatron.discovery.common.preparation.rule.Set;
 import com.skt.metatron.teddy.DataFrame;
 import com.skt.metatron.teddy.TeddyException;
 import org.junit.BeforeClass;
@@ -8,7 +7,10 @@ import org.junit.Test;
 
 import java.io.*;
 import java.net.URL;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 public class DataFrameTest {
 
@@ -61,6 +63,13 @@ public class DataFrameTest {
     return grid;
   }
 
+  static DataFrame prepare_multi(DataFrame multi) throws TeddyException {
+    List<String> ruleStrings = new ArrayList<>();
+    ruleStrings.add("header rownum: 1");
+    ruleStrings.add("settype col: measure type: long");
+    return DataFrameTest.apply_rule(multi, ruleStrings);
+  }
+
   @BeforeClass
   public static void setUp() throws Exception {
     loadGridCsv("sample", "metatron_dataset/small/sample.csv");
@@ -71,6 +80,7 @@ public class DataFrameTest {
     loadGridCsv("store2", "data/ibk_store_n3000_2.csv");
     loadGridCsv("store3", "data/ibk_store_n3000_3.csv");
     loadGridCsv("store4", "data/ibk_store_n3000_4.csv");
+    loadGridCsv("multi", "dataprep/pivot_test_multiple_column.csv");
   }
 
   @Test
@@ -115,7 +125,7 @@ public class DataFrameTest {
     newDf.show();
   }
 
-  private DataFrame apply_rule(DataFrame df, List<String> ruleStrings) throws TeddyException {
+  static DataFrame apply_rule(DataFrame df, List<String> ruleStrings) throws TeddyException {
     for (String ruleString : ruleStrings) {
       Rule rule = new RuleVisitorParser().parse(ruleString);
       switch (rule.getName()) {
@@ -144,7 +154,7 @@ public class DataFrameTest {
     return df;
   }
 
-  private DataFrame prepare_common(DataFrame df) throws IOException, TeddyException {
+  static DataFrame prepare_common(DataFrame df) throws IOException, TeddyException {
     List<String> ruleStrings = new ArrayList<>();
 
     ruleStrings.add("rename col: column1 to: launch");
