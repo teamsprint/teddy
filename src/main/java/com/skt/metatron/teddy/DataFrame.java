@@ -70,6 +70,9 @@ public class DataFrame implements Serializable {
   public List<DataType> colTypes;
   public List<Row> objGrid;
 
+  public Rule rule;
+  public String strRule;
+
   // 처음 data를 가져오는 정보부터, 현재 dataframe에 이르기까지의 모든 정보
   // 내 스스로는 필요없음. upstreamDataFrame의 내용이 필요할 때가 있음 (join, union, wrangled -> wrangled)
   private List<DataFrame> upstreamDataFrame;
@@ -84,6 +87,8 @@ public class DataFrame implements Serializable {
     colNames = new ArrayList<>();
     colTypes = new ArrayList<>();
     objGrid = new ArrayList<>();
+
+    strRule = "ORIGINAL";
   }
 
   public void setGrid(List<String[]> strGrid) {
