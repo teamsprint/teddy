@@ -318,7 +318,7 @@ public class DataFrameTest {
   private DataFrame prepare_store(DataFrame store) throws TeddyException {
     List<String> ruleStrings = new ArrayList<>();
     ruleStrings.add("header rownum: 1");
-    ruleStrings.add("drop col: store_code, store_name");
+    ruleStrings.add("drop col: store_name");
     ruleStrings.add("settype col: detail_store_code type: long");
     return apply_rule(store, ruleStrings);
   }
@@ -784,6 +784,20 @@ public class DataFrameTest {
     String ruleString = "keep row: if(pcode4 < 10)";
     Rule rule = new RuleVisitorParser().parse(ruleString);
     DataFrame newDf = contract.doKeep((Keep) rule);
+
+    newDf.show();
+  }
+
+  @Test
+  public void test_keep_literal() throws IOException, TeddyException {
+    DataFrame store = new DataFrame();
+    store.setGrid(grids.get("store"));
+    store = prepare_store(store);
+    store.show();
+
+    String ruleString = "keep row: if(store_code=='0001')";
+    Rule rule = new RuleVisitorParser().parse(ruleString);
+    DataFrame newDf = store.doKeep((Keep) rule);
 
     newDf.show();
   }
