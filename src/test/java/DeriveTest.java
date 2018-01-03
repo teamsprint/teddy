@@ -73,74 +73,77 @@ public class DeriveTest {
     @BeforeClass
     public static void setUp() throws Exception {
         loadGridCsv("sample", "metatron_dataset/small/sample.csv");
-        loadGridCsv("contract", "data/ibk_contract_n10000.csv");
-        loadGridCsv("product", "data/ibk_product_n5000.csv");
-        loadGridCsv("store", "data/ibk_store_n10000.csv");
-        loadGridCsv("store1", "data/ibk_store_n3000_1.csv");
-        loadGridCsv("store2", "data/ibk_store_n3000_2.csv");
-        loadGridCsv("store3", "data/ibk_store_n3000_3.csv");
-        loadGridCsv("store4", "data/ibk_store_n3000_4.csv");
-        loadGridCsv("store4", "data/ibk_store_n3000_4.csv");
-        loadGridCsv("multi", "dataprep/pivot_test_multiple_column.csv");
     }
 
     @Test
     public void testDerive1() throws IOException, TeddyException {
-        DataFrame df = new DataFrame();
-        df.setGrid(grids.get("sample"));
-        df = DataFrameTest.prepare_sample(df);
-        df.show();
+        DataFrame null_contained = new DataFrame();
+        null_contained.setGrid(grids.get("sample"));
+        null_contained = DataFrameTest.prepare_null_contained(null_contained);
+        null_contained.show();
 
         Rule rule = new RuleVisitorParser().parse("derive value: itemNo as: 'cate_if'");
-        DataFrame newDf = df.doDerive((Derive) rule);
+        DataFrame newDf = null_contained.doDerive((Derive) rule);
         newDf.show();
         assertEquals(new Long(1), newDf.objGrid.get(0).get("cate_if"));
     }
 
     @Test
     public void testDerive2() throws IOException, TeddyException {
-        DataFrame df = new DataFrame();
-        df.setGrid(grids.get("sample"));
-        df = DataFrameTest.prepare_sample(df);
-        df.show();
+        DataFrame null_contained = new DataFrame();
+        null_contained.setGrid(grids.get("sample"));
+        null_contained = DataFrameTest.prepare_null_contained(null_contained);
+        null_contained.show();
 
         Rule rule = new RuleVisitorParser().parse("derive value: if(itemNo) as: 'cate_if'");
-        DataFrame newDf = df.doDerive((Derive) rule);
+        DataFrame newDf = null_contained.doDerive((Derive) rule);
         newDf.show();
         assertEquals(true, newDf.objGrid.get(0).get("cate_if"));
     }
 
     @Test
     public void testDerive3() throws IOException, TeddyException {
-        DataFrame df = new DataFrame();
-        df.setGrid(grids.get("sample"));
-        df = DataFrameTest.prepare_sample(df);
-        Row row = df.objGrid.get(0);
-        row.set("itemNo", null);
-        df.show();
+        DataFrame null_contained = new DataFrame();
+        null_contained.setGrid(grids.get("sample"));
+        null_contained = DataFrameTest.prepare_null_contained(null_contained);
+        null_contained.show();
 
         Rule rule = new RuleVisitorParser().parse("derive value: if(isnull(itemNo), '1', '2') as: 'cate_if'");
-        DataFrame newDf = df.doDerive((Derive) rule);
+        DataFrame newDf = null_contained.doDerive((Derive) rule);
         newDf.show();
-        assertEquals("1", newDf.objGrid.get(0).get("cate_if"));
-        assertEquals("2", newDf.objGrid.get(1).get("cate_if"));
+        assertEquals("2", newDf.objGrid.get(0).get("cate_if"));
+        assertEquals("1", newDf.objGrid.get(1).get("cate_if"));
     }
-//
-//    @Test
-//    public void testDerive4() {
-//        String rule = "derive value: if(itemNo, 1, 2) as: 'cate_if'";
-//        Dataset resultDF = metisService.transform(getRuleSet(rule), true).getResultSet();
-//        resultDF.show();
-//        assertEquals(new Long(1), resultDF.select("cate_if").as(Encoders.LONG()).first());
-//    }
-//
-//    @Test
-//    public void testDerive5() {
-//        String rule = "derive value: if(itemNo, 1.0, 2.0) as: 'cate_if'";
-//        Dataset resultDF = metisService.transform(getRuleSet(rule), true).getResultSet();
-//        resultDF.show();
-//        assertEquals(1.0, resultDF.select("cate_if").as(Encoders.DOUBLE()).first());
-//    }
+
+    @Test
+    public void testDerive4() throws IOException, TeddyException {
+        DataFrame null_contained = new DataFrame();
+        null_contained.setGrid(grids.get("sample"));
+        null_contained = DataFrameTest.prepare_null_contained(null_contained);
+        null_contained.show();
+
+        Rule rule = new RuleVisitorParser().parse("derive value: if(itemNo, 1, 2) as: 'cate_if'");
+        DataFrame newDf = null_contained.doDerive((Derive) rule);
+        newDf.show();
+
+        assertEquals(new Long(1), newDf.objGrid.get(0).get("cate_if"));
+        assertEquals(new Long(2), newDf.objGrid.get(1).get("cate_if"));
+    }
+
+    @Test
+    public void testDerive5() throws IOException, TeddyException {
+        DataFrame null_contained = new DataFrame();
+        null_contained.setGrid(grids.get("sample"));
+        null_contained = DataFrameTest.prepare_null_contained(null_contained);
+        null_contained.show();
+
+        Rule rule = new RuleVisitorParser().parse("derive value: if(itemNo, 1.0, 2.0) as: 'cate_if'");
+        DataFrame newDf = null_contained.doDerive((Derive) rule);
+        newDf.show();
+
+        assertEquals(new Double(1.0), newDf.objGrid.get(0).get("cate_if"));
+        assertEquals(new Double(2.0), newDf.objGrid.get(1).get("cate_if"));
+    }
 //
 //    @Test
 //    public void testDerive6() {
