@@ -104,7 +104,7 @@ public class DataFrameTest {
     df = prepare_sample(df);
     df.show();
 
-    String ruleString = "drop col: recent, itemNo";
+    String ruleString = "drop col: contract_date, itemNo";
     Rule rule = new RuleVisitorParser().parse(ruleString);
     DataFrame newDf = df.doDrop((Drop)rule);
     newDf.show();
@@ -156,37 +156,16 @@ public class DataFrameTest {
   static DataFrame prepare_sample(DataFrame df) throws IOException, TeddyException {
     List<String> ruleStrings = new ArrayList<>();
 
-    ruleStrings.add("rename col: column1 to: launch");
-    ruleStrings.add("rename col: column2 to: recent");
-    ruleStrings.add("rename col: column3 to: itemNo");
-    ruleStrings.add("rename col: column4 to: name");
-    ruleStrings.add("rename col: column5 to: speed");
-    ruleStrings.add("rename col: column6 to: price");
-    ruleStrings.add("rename col: column7 to: rank");
+    ruleStrings.add("header rownum: 1");
     ruleStrings.add("settype col: itemNo type: long");
     ruleStrings.add("settype col: speed type: long");
-    ruleStrings.add("settype col: price type: double");
-    ruleStrings.add("settype col: rank type: long");
+    ruleStrings.add("settype col: weight type: double");
 
     return apply_rule(df, ruleStrings);
   }
 
   static DataFrame prepare_null_contained(DataFrame df) throws IOException, TeddyException {
-    List<String> ruleStrings = new ArrayList<>();
-
-    ruleStrings.add("rename col: column1 to: launch");
-    ruleStrings.add("rename col: column2 to: recent");
-    ruleStrings.add("rename col: column3 to: itemNo");
-    ruleStrings.add("rename col: column4 to: name");
-    ruleStrings.add("rename col: column5 to: speed");
-    ruleStrings.add("rename col: column6 to: price");
-    ruleStrings.add("rename col: column7 to: rank");
-    ruleStrings.add("settype col: itemNo type: long");
-    ruleStrings.add("settype col: speed type: long");
-    ruleStrings.add("settype col: price type: double");
-    ruleStrings.add("settype col: rank type: long");
-
-    df = apply_rule(df, ruleStrings);
+    df = prepare_sample(df);
     df.objGrid.get(1).set("itemNo", null);
     return df;
   }
