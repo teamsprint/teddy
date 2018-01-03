@@ -73,12 +73,25 @@ public class DeriveTest {
     @BeforeClass
     public static void setUp() throws Exception {
         loadGridCsv("sample", "metatron_dataset/small/sample.csv");
+        loadGridCsv("null_contained", "metatron_dataset/small/null_contained.csv");
     }
+
+    // original dataset
+    // +----------+-------------+------+-----------+-----+------+
+    // |birth_date|contract_date|itemNo|       name|speed|weight|
+    // +----------+-------------+------+-----------+-----+------+
+    // |2010-01-01|   2017-01-01|     1|    Ferrari|  259|   800|
+    // |2000-01-01|   2017-01-01|  null|     Jaguar|  274|   998|
+    // |1990-01-01|   2017-01-01|     3|   Mercedes|  340|  1800|
+    // |1980-01-01|   2017-01-01|     4|       Audi|  345|   875|
+    // |1970-01-01|   2017-01-01|     5|Lamborghini|  355|  1490|
+    // |1970-01-01|   2017-01-01|     6|       null| null|  1490|
+    // +----------+-------------+------+-----------+-----+------+
 
     @Test
     public void testDerive1() throws IOException, TeddyException {
         DataFrame null_contained = new DataFrame();
-        null_contained.setGrid(grids.get("sample"));
+        null_contained.setGrid(grids.get("null_contained"));
         null_contained = DataFrameTest.prepare_null_contained(null_contained);
         null_contained.show();
 
@@ -86,12 +99,13 @@ public class DeriveTest {
         DataFrame newDf = null_contained.doDerive((Derive) rule);
         newDf.show();
         assertEquals(new Long(1), newDf.objGrid.get(0).get("cate_if"));
+        assertEquals(null, newDf.objGrid.get(1).get("cate_if"));
     }
 
     @Test
     public void testDerive2() throws IOException, TeddyException {
         DataFrame null_contained = new DataFrame();
-        null_contained.setGrid(grids.get("sample"));
+        null_contained.setGrid(grids.get("null_contained"));
         null_contained = DataFrameTest.prepare_null_contained(null_contained);
         null_contained.show();
 
@@ -99,12 +113,13 @@ public class DeriveTest {
         DataFrame newDf = null_contained.doDerive((Derive) rule);
         newDf.show();
         assertEquals(true, newDf.objGrid.get(0).get("cate_if"));
+        assertEquals(false, newDf.objGrid.get(1).get("cate_if"));
     }
 
     @Test
     public void testDerive3() throws IOException, TeddyException {
         DataFrame null_contained = new DataFrame();
-        null_contained.setGrid(grids.get("sample"));
+        null_contained.setGrid(grids.get("null_contained"));
         null_contained = DataFrameTest.prepare_null_contained(null_contained);
         null_contained.show();
 
@@ -118,7 +133,7 @@ public class DeriveTest {
     @Test
     public void testDerive4() throws IOException, TeddyException {
         DataFrame null_contained = new DataFrame();
-        null_contained.setGrid(grids.get("sample"));
+        null_contained.setGrid(grids.get("null_contained"));
         null_contained = DataFrameTest.prepare_null_contained(null_contained);
         null_contained.show();
 
@@ -133,7 +148,7 @@ public class DeriveTest {
     @Test
     public void testDerive5() throws IOException, TeddyException {
         DataFrame null_contained = new DataFrame();
-        null_contained.setGrid(grids.get("sample"));
+        null_contained.setGrid(grids.get("null_contained"));
         null_contained = DataFrameTest.prepare_null_contained(null_contained);
         null_contained.show();
 

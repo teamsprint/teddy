@@ -165,9 +165,21 @@ public class DataFrameTest {
   }
 
   static DataFrame prepare_null_contained(DataFrame df) throws IOException, TeddyException {
-    df = prepare_sample(df);
-    df.objGrid.get(1).set("itemNo", null);
+    List<String> ruleStrings = new ArrayList<>();
+
+    ruleStrings.add("header rownum: 1");
+    ruleStrings.add("set col: itemNo value: if(itemNo=='NULL', null(), itemNo)");
+    ruleStrings.add("set col: name value: if(name=='NULL', null(), name)");
+    ruleStrings.add("set col: speed value: if(speed=='NULL', null(), speed)");
+
+    ruleStrings.add("settype col: itemNo type: long");
+    ruleStrings.add("settype col: speed type: long");
+    ruleStrings.add("settype col: weight type: double");
+
+    df = apply_rule(df, ruleStrings);
     return df;
+//    df.objGrid.get(1).set("itemNo", null);
+//    return df;
   }
 
   @Test

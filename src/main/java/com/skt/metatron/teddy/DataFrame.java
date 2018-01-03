@@ -342,14 +342,38 @@ public class DataFrame implements Serializable {
     // Function Operation
     else if (expr instanceof Expr.FunctionExpr) {
       List<Expr> args = ((Expr.FunctionExpr) expr).getArgs();
-      if (args.size() == 1) {
-        resultType = DataType.BOOLEAN;
-      } else if (args.size() == 3) {
-        if (args.get(1) instanceof Constant.StringExpr && args.get(2) instanceof Constant.StringExpr) {
-          return DataType.STRING;
+      if (((Expr.FunctionExpr) expr).getName().equals("if")) {
+        if (args.size() == 1) {
+          resultType = DataType.BOOLEAN;
+        } else if (args.size() == 3) {
+          DataType trueExpr = decideType(args.get(1));
+          DataType falseExpr = decideType(args.get(2));
+          if (trueExpr == falseExpr) {
+            resultType = trueExpr;
+          } else {
+            if (trueExpr == DataType.UNKNOWN && falseExpr == DataType.UNKNOWN) {
+              throw new TeddyException(String.format("decideType(): both types are UNKNOWN trueVal=%s falseVal=%s",
+                      args.get(1).toString(), args.get(2).toString()));
+            } else if (trueExpr == DataType.UNKNOWN) {
+              resultType = falseExpr;
+            } else if (falseExpr == DataType.UNKNOWN) {
+              resultType = trueExpr;
+            } else {
+              throw new TeddyException(String.format("decideType(): type different: trueVal=%s falseVal=%s",
+                      args.get(1).toString(), args.get(2).toString()));
+            }
+          }
+        } else {
+          throw new TeddyException("decideType(): invalid function arguments: " + args.size());
         }
+      } else if (((Expr.FunctionExpr) expr).getName().equals("length")) {
+        return DataType.LONG;
+      } else if (((Expr.FunctionExpr) expr).getName().equals("isnull")) {
+        return DataType.BOOLEAN;
+      } else if (((Expr.FunctionExpr) expr).getName().equals("null")) {
+        return DataType.UNKNOWN;
       } else {
-        throw new TeddyException("decideType(): invalid function arguments: " + args.size());
+        throw new TeddyException("decideType(): invalid function type: " + expr.toString());
       }
     }
 //    LOGGER.debug(String.format("decideType(): resultType=%s expr=%s", resultType, expr));
@@ -414,6 +438,10 @@ public class DataFrame implements Serializable {
   }
 
   private Object cast(Object obj, DataType fromType, DataType toType) throws TeddyException {
+    if (obj == null) {
+      return null;
+    }
+
     switch (toType) {
       case DOUBLE:
         switch (fromType) {
@@ -514,7 +542,9 @@ public class DataFrame implements Serializable {
           } else if (newDf.colTypes.get(colno) == DataType.STRING) {
             // for compatability to twinkle
             String resultStr= (String)resultObj;
-            resultStr = resultStr.replaceAll("'", "");
+            if (resultStr != null) {
+              resultStr = resultStr.replaceAll("'", "");
+            }
             newRow.add(targetColName, resultStr);
           } else {
             newRow.add(targetColName, resultObj);
