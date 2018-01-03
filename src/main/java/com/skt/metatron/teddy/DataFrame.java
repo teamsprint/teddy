@@ -134,7 +134,7 @@ public class DataFrame implements Serializable {
       Row row = objGrid.get(rowno);
       for (int colno = 0; colno < row.size(); colno++) {
         Object objCol = row.get(colNames.get(colno));
-        int colLen = objCol.toString().length();
+        int colLen = (objCol == null) ? 4 : objCol.toString().length();   // 4 for "null"
         if (colLen > widths.get(colno)) {
           widths.set(colno, colLen);
         }
@@ -183,7 +183,7 @@ public class DataFrame implements Serializable {
   private void showRow(List<Integer> widths, Row row) {
     System.out.print("|");
     for (int i = 0; i < colCnt; i++) {
-      System.out.print(String.format("%" + widths.get(i) + "s", row.get(i).toString()));
+      System.out.print(String.format("%" + widths.get(i) + "s", row.get(i) == null ? "null" : row.get(i).toString()));
       System.out.print("|");
     }
     System.out.println("");
@@ -511,6 +511,11 @@ public class DataFrame implements Serializable {
           Object resultObj = eval(expr, rowno);
           if (newDf.colTypes.get(colno) == DataType.BOOLEAN) {
             newRow.add(targetColName, Boolean.valueOf(((Long)resultObj).longValue() == 1));
+          } else if (newDf.colTypes.get(colno) == DataType.STRING) {
+            // for compatability to twinkle
+            String resultStr= (String)resultObj;
+            resultStr = resultStr.replaceAll("'", "");
+            newRow.add(targetColName, resultStr);
           } else {
             newRow.add(targetColName, resultObj);
           }
@@ -531,9 +536,7 @@ public class DataFrame implements Serializable {
     String targetColName = derive.getAs();
 
     // for compatability to twinkle
-    if (targetColName.startsWith("'") && targetColName.endsWith("'")) {
-      targetColName = stripSingleQuote(targetColName);
-    }
+    targetColName = targetColName.replaceAll("'", "");
 
     // 기존 column 이름과 겹치면 안됨.
     for (int colno = 0; colno < colCnt; colno++) {
@@ -954,9 +957,7 @@ public class DataFrame implements Serializable {
     }
 
     // for compatability to twinkle
-    if (as.startsWith("'") && as.endsWith("'")) {
-      as = stripSingleQuote(as);
-    }
+    as = as.replaceAll("'", "");
 
     DataFrame newDf = new DataFrame();
     newDf.colCnt = colCnt;
@@ -1182,9 +1183,7 @@ public class DataFrame implements Serializable {
     int rowno, colno;
 
     // for compatability to twinkle
-    if (as.startsWith("'") && as.endsWith("'")) {
-      as = stripSingleQuote(as);
-    }
+    as = as.replaceAll("'", "");
 
     String newColName = checkNewColName(as, true);
 

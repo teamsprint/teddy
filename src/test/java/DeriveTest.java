@@ -2,6 +2,7 @@ import com.skt.metatron.discovery.common.preparation.RuleVisitorParser;
 import com.skt.metatron.discovery.common.preparation.rule.Derive;
 import com.skt.metatron.discovery.common.preparation.rule.Rule;
 import com.skt.metatron.teddy.DataFrame;
+import com.skt.metatron.teddy.Row;
 import com.skt.metatron.teddy.TeddyException;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -109,18 +110,21 @@ public class DeriveTest {
         assertEquals(true, newDf.objGrid.get(0).get("cate_if"));
     }
 
-//    @Test
-//    public void testDerive3() throws IOException, TeddyException {
-//        DataFrame df = new DataFrame();
-//        df.setGrid(grids.get("sample"));
-//        df = DataFrameTest.prepare_sample(df);
-//        df.show();
-//
-//        Rule rule = new RuleVisitorParser().parse("derive value: if(isnull(itemNo), '1', '2') as: 'cate_if'");
-//        DataFrame newDf = df.doDerive((Derive) rule);
-//        newDf.show();
-//        assertEquals("2", newDf.objGrid.get(0).get("cate_if"));
-//    }
+    @Test
+    public void testDerive3() throws IOException, TeddyException {
+        DataFrame df = new DataFrame();
+        df.setGrid(grids.get("sample"));
+        df = DataFrameTest.prepare_sample(df);
+        Row row = df.objGrid.get(0);
+        row.set("itemNo", null);
+        df.show();
+
+        Rule rule = new RuleVisitorParser().parse("derive value: if(isnull(itemNo), '1', '2') as: 'cate_if'");
+        DataFrame newDf = df.doDerive((Derive) rule);
+        newDf.show();
+        assertEquals("1", newDf.objGrid.get(0).get("cate_if"));
+        assertEquals("2", newDf.objGrid.get(1).get("cate_if"));
+    }
 //
 //    @Test
 //    public void testDerive4() {
