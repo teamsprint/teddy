@@ -570,13 +570,7 @@ public class DataFrame implements Serializable {
 
     // for compatability to twinkle
     targetColName = targetColName.replaceAll("'", "");
-
-    // 기존 column 이름과 겹치면 안됨.
-    for (int colno = 0; colno < colCnt; colno++) {
-      if (colNames.get(colno).equalsIgnoreCase(targetColName)) {
-        throw new TeddyException("doDerive(): colname exists: " + targetColName);
-      }
-    }
+    targetColName = checkNewColName(targetColName, true);
 
     return doSetInternal(targetColName, derive.getValue());
   }

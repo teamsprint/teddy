@@ -83,6 +83,18 @@ public class DeriveTest {
     return null_contained;
   }
 
+  // original dataset
+  // +----------+-------------+------+-----------+-----+------+
+  // |birth_date|contract_date|itemNo|       name|speed|weight|
+  // +----------+-------------+------+-----------+-----+------+
+  // |2010-01-01|   2017-01-01|     1|    Ferrari|  259|   800|
+  // |2000-01-01|   2017-01-01|  null|     Jaguar|  274|   998|
+  // |1990-01-01|   2017-01-01|     3|   Mercedes|  340|  1800|
+  // |1980-01-01|   2017-01-01|     4|       Audi|  345|   875|
+  // |1970-01-01|   2017-01-01|     5|Lamborghini|  355|  1490|
+  // |1970-01-01|   2017-01-01|     6|       null| null|  1490|
+  // +----------+-------------+------+-----------+-----+------+
+
   @Test
   public void testDerive1() throws IOException, TeddyException {
     DataFrame null_contained = newNullContainedDataFrame();
@@ -350,7 +362,7 @@ public class DeriveTest {
 
     assertEquals(true,  newDf.objGrid.get(0).get("cate_if"));   // Ferrari
     assertEquals(false, newDf.objGrid.get(5).get("cate_if"));   // null
-    // consequently, if the argument is null, the result of a function is also null.
+    // the conditional result of null is the false.
   }
 
   @Test
@@ -363,7 +375,7 @@ public class DeriveTest {
     assertEquals("1", newDf.objGrid.get(0).get("cate_if"));  // Ferrari
     assertEquals("0", newDf.objGrid.get(3).get("cate_if"));  // Audi
     assertEquals("0", newDf.objGrid.get(5).get("cate_if"));  // null
-    // consequently, if the argument is null, the result of a function is also null.
+    // the conditional result of null is the false.
   }
 
   @Test
@@ -376,7 +388,7 @@ public class DeriveTest {
     assertEquals(new Long(0), newDf.objGrid.get(0).get("cate_if"));  // Ferrari
     assertEquals(new Long(1), newDf.objGrid.get(3).get("cate_if"));  // Audi
     assertEquals(new Long(0), newDf.objGrid.get(5).get("cate_if"));  // null
-    // consequently, if the argument is null, the result of a function is also null.
+    // the conditional result of null is the false.
   }
 
   @Test
@@ -389,7 +401,7 @@ public class DeriveTest {
     assertEquals(1.0, newDf.objGrid.get(0).get("cate_if"));   // Ferrari
     assertEquals(10.0, newDf.objGrid.get(3).get("cate_if"));  // Audi
     assertEquals(1.0, newDf.objGrid.get(5).get("cate_if"));   // null
-    // consequently, if the argument is null, the result of a function is also null.
+    // the conditional result of null is the false.
   }
 
   @Test
@@ -402,7 +414,7 @@ public class DeriveTest {
     assertEquals("others", newDf.objGrid.get(0).get("cate_if"));  // Ferrari
     assertEquals("4c",     newDf.objGrid.get(3).get("cate_if"));  // Audi
     assertEquals("others", newDf.objGrid.get(5).get("cate_if"));  // null
-    // consequently, if the argument is null, the result of a function is also null.
+    // the conditional result of null is the false.
   }
 
   @Test
@@ -412,22 +424,8 @@ public class DeriveTest {
     DataFrame newDf = null_contained.doDerive((Derive) rule);
     newDf.show();
 
-    assertEquals(new Long(900), newDf.objGrid.get(0).get("cate_if"));  // Ferrari
-    // consequently, if the argument is null, the result of a function is also null.
+    assertEquals(new Long(900), newDf.objGrid.get(0).get("cate_if"));  // 800
   }
-
-  // original dataset
-  // +----------+-------------+------+-----------+-----+------+
-  // |birth_date|contract_date|itemNo|       name|speed|weight|
-  // +----------+-------------+------+-----------+-----+------+
-  // |2010-01-01|   2017-01-01|     1|    Ferrari|  259|   800|
-  // |2000-01-01|   2017-01-01|  null|     Jaguar|  274|   998|
-  // |1990-01-01|   2017-01-01|     3|   Mercedes|  340|  1800|
-  // |1980-01-01|   2017-01-01|     4|       Audi|  345|   875|
-  // |1970-01-01|   2017-01-01|     5|Lamborghini|  355|  1490|
-  // |1970-01-01|   2017-01-01|     6|       null| null|  1490|
-  // +----------+-------------+------+-----------+-----+------+
-
 
   @Test
   public void testDerive29() throws IOException, TeddyException {
@@ -436,8 +434,7 @@ public class DeriveTest {
     DataFrame newDf = null_contained.doDerive((Derive) rule);
     newDf.show();
 
-    assertEquals(900.78, newDf.objGrid.get(0).get("cate_if"));  // Ferrari
-    // consequently, if the argument is null, the result of a function is also null.
+    assertEquals(900.78, newDf.objGrid.get(0).get("cate_if"));  // 800
   }
 
   @Test
@@ -447,8 +444,7 @@ public class DeriveTest {
     DataFrame newDf = null_contained.doDerive((Derive) rule);
     newDf.show();
 
-    assertEquals(new Long(700), newDf.objGrid.get(0).get("cate_if"));  // Ferrari
-    // consequently, if the argument is null, the result of a function is also null.
+    assertEquals(new Long(700), newDf.objGrid.get(0).get("cate_if"));  // 800
   }
 
   @Test
@@ -458,8 +454,7 @@ public class DeriveTest {
     DataFrame newDf = null_contained.doDerive((Derive) rule);
     newDf.show();
 
-    assertEquals(new Long(80000), newDf.objGrid.get(0).get("cate_if"));  // Ferrari
-    // consequently, if the argument is null, the result of a function is also null.
+    assertEquals(new Long(80000), newDf.objGrid.get(0).get("cate_if"));  // 800
   }
 
   @Test
@@ -469,67 +464,68 @@ public class DeriveTest {
     DataFrame newDf = null_contained.doDerive((Derive) rule);
     newDf.show();
 
-    assertEquals(8.0, newDf.objGrid.get(0).get("cate_if"));  // Ferrari
-    // consequently, if the argument is null, the result of a function is also null.
+    assertEquals(8.0, newDf.objGrid.get(0).get("cate_if"));  // 800
   }
 
+  @Test
+  public void testDerive33() throws IOException, TeddyException {
+    DataFrame null_contained = newNullContainedDataFrame();
+    Rule rule = new RuleVisitorParser().parse("derive value: speed + weight as: 'cate_if'");
+    DataFrame newDf = null_contained.doDerive((Derive) rule);
+    newDf.show();
+
+    assertEquals(new Long(1059), newDf.objGrid.get(0).get("cate_if"));  // 259, 800
+  }
+
+  @Test
+  public void testDerive34() throws IOException, TeddyException {
+    DataFrame null_contained = newNullContainedDataFrame();
+    Rule rule = new RuleVisitorParser().parse("derive value: speed + weight + itemNo as: 'cate_if'");
+    DataFrame newDf = null_contained.doDerive((Derive) rule);
+    newDf.show();
+
+    assertEquals(new Long(1060), newDf.objGrid.get(0).get("cate_if"));  // 259, 800, 1
+  }
+
+  @Test
+  public void testDerive35() throws IOException, TeddyException {
+    DataFrame null_contained = newNullContainedDataFrame();
+    Rule rule = new RuleVisitorParser().parse("derive value: speed + 100 - weight + 2 - 3 as: 'cate_if'");
+    DataFrame newDf = null_contained.doDerive((Derive) rule);
+    newDf.show();
+
+    assertEquals(new Long(-442), newDf.objGrid.get(0).get("cate_if"));  // 259, 800
+  }
+
+  @Test
+  public void testDerive36() throws IOException, TeddyException {
+    DataFrame null_contained = newNullContainedDataFrame();
+    Rule rule = new RuleVisitorParser().parse("derive value: length(name) + speed + itemNo + 100 as: 'cate_if'");
+    DataFrame newDf = null_contained.doDerive((Derive) rule);
+    newDf.show();
+
+    assertEquals(new Long(367), newDf.objGrid.get(0).get("cate_if"));  // Ferrari, 259, 1
+  }
 //
-//    @Test
-//    public void testDerive32() {
-//        String rule = "derive value: weight / 100 as: 'cate_if'";
-//        Dataset resultDF = metisService.transform(getRuleSet(rule), true).getResultSet();
-//        resultDF.show();
-//        assertEquals(8.0, resultDF.select("cate_if").as(Encoders.DOUBLE()).first());
-//    }
+//  @Test
+//  public void testDerive37() throws IOException, TeddyException {
+//    DataFrame null_contained = newNullContainedDataFrame();
+//    Rule rule = new RuleVisitorParser().parse("derive value: math.sqrt(speed) + math.sqrt(weight) as: 'cate_if'");
+//    DataFrame newDf = null_contained.doDerive((Derive) rule);
+//    newDf.show();
 //
-//    @Test
-//    public void testDerive33() {
-//        String rule = "derive value: speed + weight as: 'cate_if'";
-//        Dataset resultDF = metisService.transform(getRuleSet(rule), true).getResultSet();
-//        resultDF.show();
-//        assertEquals(new Long(1059), resultDF.select("cate_if").as(Encoders.LONG()).first());
-//    }
-//
-//    @Test
-//    public void testDerive34() {
-//        String rule = "derive value: weight + speed + itemNo as: 'cate_if'";
-//        Dataset resultDF = metisService.transform(getRuleSet(rule), true).getResultSet();
-//        resultDF.show();
-//        assertEquals(new Long(1060), resultDF.select("cate_if").as(Encoders.LONG()).first());
-//    }
-//
-//    @Test
-//    public void testDerive35() {
-//        String rule = "derive value: speed + 100 - weight + 2 - 3 as: 'cate_if'";
-//        Dataset resultDF = metisService.transform(getRuleSet(rule), true).getResultSet();
-//        resultDF.show();
-//        assertEquals(new Long(-442), resultDF.select("cate_if").as(Encoders.LONG()).first());
-//    }
-//
-//    @Test
-//    public void testDerive36() {
-//        String rule = "derive value: length(name) + speed + itemNo + 100 as: 'cate_if'";
-//        Dataset resultDF = metisService.transform(getRuleSet(rule), true).getResultSet();
-//        resultDF.show();
-//        assertEquals(new Long(367), resultDF.select("cate_if").as(Encoders.LONG()).first());
-//    }
-//
-//    @Test
-//    public void testDerive37() {
-//        String rule = "derive value: math.sqrt(speed) + math.sqrt(weight) as: 'cate_if'";
-//        Dataset resultDF = metisService.transform(getRuleSet(rule), true).getResultSet();
-//        resultDF.show();
-//        String result = String.valueOf(resultDF.select("cate_if").as(Encoders.STRING()).first()).substring(0,6);
-//        assertEquals("44.377", result);
-//    }
-//
-//    @Test
-//    public void testDerive38() {
-//        String rule = "derive value: 5 + weight as: 'cate_if'";
-//        Dataset resultDF = metisService.transform(getRuleSet(rule), true).getResultSet();
-//        resultDF.show();
-//        assertEquals(new Long(805), resultDF.select("cate_if").as(Encoders.LONG()).first());
-//    }
+//    assertEquals("44.377", newDf.objGrid.get(0).get("cate_if").toString().substring(0, 6));  // 259, 800
+//  }
+
+  @Test
+  public void testDerive38() throws IOException, TeddyException {
+    DataFrame null_contained = newNullContainedDataFrame();
+    Rule rule = new RuleVisitorParser().parse("derive value: 5 + weight as: 'cate_if'");
+    DataFrame newDf = null_contained.doDerive((Derive) rule);
+    newDf.show();
+
+    assertEquals(new Long(805), newDf.objGrid.get(0).get("cate_if"));  // 800
+  }
 //
 //    @Test
 //    public void testDerive39() {
@@ -540,6 +536,16 @@ public class DeriveTest {
 //        resultDF.show();
 //        assertEquals(new Long(2557), resultDF.select("age_10").as(Encoders.LONG()).first());
 //    }
+
+  @Test
+  public void testDerive40() throws IOException, TeddyException {
+    DataFrame null_contained = newNullContainedDataFrame();
+    Rule rule = new RuleVisitorParser().parse("derive value: 1 as: 'cate_if'");
+    DataFrame newDf = null_contained.doDerive((Derive) rule);
+    newDf.show();
+
+    assertEquals(new Long(1), newDf.objGrid.get(0).get("cate_if"));  // 800
+  }
 //
 //    @Test
 //    public void testDerive40() {
@@ -580,30 +586,39 @@ public class DeriveTest {
 //        resultDF.show();
 //        assertEquals(new Long(1), resultDF.select("cate_if").as(Encoders.LONG()).first());
 //    }
-//
-//    @Test
-//    public void testDerive45() {
-//        String rule = "derive value: if('Ferrari' == name) as: 'cate_if'";
-//        Dataset resultDF = metisService.transform(getRuleSet(rule), true).getResultSet();
-//        resultDF.show();
-//        assertEquals(true, resultDF.select("cate_if").as(Encoders.BOOLEAN()).first());
-//    }
-//
-//    @Test
-//    public void testDerive46() {
-//        String rule = "derive value: if(length(name) + 1 == length(name) + 2) as: 'cate_if'";
-//        Dataset resultDF = metisService.transform(getRuleSet(rule), true).getResultSet();
-//        resultDF.show();
-//        assertEquals(false, resultDF.select("cate_if").as(Encoders.BOOLEAN()).first());
-//    }
-//
-//    @Test
-//    public void testDerive47() {
-//        String rule = "derive value: isnull(name) as: 'cate_if'";
-//        Dataset resultDF = metisService.transform(getRuleSet(rule), true).getResultSet();
-//        resultDF.show();
-//        assertEquals(false, resultDF.select("cate_if").as(Encoders.BOOLEAN()).first());
-//    }
+
+  @Test
+  public void testDerive45() throws IOException, TeddyException {
+    DataFrame null_contained = newNullContainedDataFrame();
+    Rule rule = new RuleVisitorParser().parse("derive value: if('Ferrari' == name) as: 'cate_if'");
+    DataFrame newDf = null_contained.doDerive((Derive) rule);
+    newDf.show();
+
+    assertEquals(true,  newDf.objGrid.get(0).get("cate_if"));  // 800
+    assertEquals(false, newDf.objGrid.get(5).get("cate_if"));  // null
+  }
+
+  @Test
+  public void testDerive46() throws IOException, TeddyException {
+    DataFrame null_contained = newNullContainedDataFrame();
+    Rule rule = new RuleVisitorParser().parse("derive value: if(length(name) + 1 == length(name) + 2) as: 'cate_if'");
+    DataFrame newDf = null_contained.doDerive((Derive) rule);
+    newDf.show();
+
+    assertEquals(false, newDf.objGrid.get(0).get("cate_if"));  // 800
+    assertEquals(false, newDf.objGrid.get(5).get("cate_if"));  // null
+  }
+
+  @Test
+  public void testDerive47() throws IOException, TeddyException {
+    DataFrame null_contained = newNullContainedDataFrame();
+    Rule rule = new RuleVisitorParser().parse("derive value: isnull(name) as: 'cate_if'");
+    DataFrame newDf = null_contained.doDerive((Derive) rule);
+    newDf.show();
+
+    assertEquals(false, newDf.objGrid.get(0).get("cate_if"));  // 800
+    assertEquals(true,  newDf.objGrid.get(5).get("cate_if"));  // null
+  }
 //
 //    @Test
 //    public void testDerive48() {
@@ -638,57 +653,30 @@ public class DeriveTest {
 //        assertEquals("1.7373", result);
 //    }
 //
-////    @Test
-////    public void testSe52() {
-////        String rule = "derive value: if(name == 'Ferrari', '1') as: 'cate_if'";
-////        Dataset resultDF = metisService.transform(getRuleSet(rule), true).getResultSet();
-////        resultDF.show();
-////        assertEquals("1", resultDF.select("cate_if").as(Encoders.STRING()).first());
-////    }
-////
-////    @Test
-////    public void testSe53() {
-////        String rule = "derive value: if(name == 'Ferrari', 1) as: 'cate_if'";
-////        Dataset resultDF = metisService.transform(getRuleSet(rule), true).getResultSet();
-////        resultDF.show();
-////        assertEquals("1", resultDF.select("cate_if").as(Encoders.STRING()).first());
-////    }
-////
-////    @Test
-////    public void testSe54() {
-////        String rule = "derive value: if(name == 'Ferrari', 1.0) as: 'cate_if'";
-////        Dataset resultDF = metisService.transform(getRuleSet(rule), true).getResultSet();
-////        resultDF.show();
-////        assertEquals("1.0", resultDF.select("cate_if").as(Encoders.STRING()).first());
-////    }
-//
-//    @Test
-//    public void testDerive55() {
-//        String rule = "derive value: if(name == 'Ferrari', itemNo, speed) as: 'name' ";
-//        Dataset resultDF = metisService.transform(getRuleSet(rule), true).getResultSet();
-//        resultDF.show();
-//        assertEquals("1", resultDF.select("name_1").as(Encoders.STRING()).first());
-//    }
-//
-//    @Test
-//    public void testDerive56() {
-//        String rule = "derive value: if(speed>=300, 'Yes', 'No') as: 'name' ";
-//        Dataset resultDF = metisService.transform(getRuleSet(rule), true).getResultSet();
-//        resultDF.show();
-//        assertEquals("No", resultDF.select("name_1").as(Encoders.STRING()).first());
-//    }
-//
-//    private void runAndPrint(String ruleCode) {
-//        Rule rule = new RuleVisitorParser().parse(ruleCode);
-//
-//        ObjectMapper mapper = new ObjectMapper();
-//        String json = null;
-//        try {
-//            json = mapper.writeValueAsString(rule);
-//        } catch (JsonProcessingException e) {
-//            e.printStackTrace();
-//        }
-//        System.out.printf("code below: %n '%s' %n has been parsed to object: %n '%s'%n '%s'%n", ruleCode, json, rule.toString());
-//    }
 
+  // some testcases were deleted, as ConditionExpr's argument count became to be 1 or 3
+  // if needed, compare to twinkle's testcases
+
+  @Test
+  public void testDerive55() throws IOException, TeddyException {
+    DataFrame null_contained = newNullContainedDataFrame();
+    Rule rule = new RuleVisitorParser().parse("derive value: if(name == 'Ferrari', itemNo, speed) as: 'name'");
+    DataFrame newDf = null_contained.doDerive((Derive) rule);
+    newDf.show();
+
+    assertEquals(new Long(1), newDf.objGrid.get(0).get("name_1"));  // Ferrari, 1, 259
+    assertEquals(null,        newDf.objGrid.get(5).get("name_1"));  // null, 6, null
+  }
+
+  @Test
+  public void testDerive56() throws IOException, TeddyException {
+    DataFrame null_contained = newNullContainedDataFrame();
+    Rule rule = new RuleVisitorParser().parse("derive value: if(speed>=300, 'Yes', 'No') as: 'name'");
+    DataFrame newDf = null_contained.doDerive((Derive) rule);
+    newDf.show();
+
+    assertEquals("No",  newDf.objGrid.get(0).get("name_1"));  // 259
+    assertEquals("Yes", newDf.objGrid.get(4).get("name_1"));  // 355
+    assertEquals("No",  newDf.objGrid.get(5).get("name_1"));  // null
+  }
 }
