@@ -2,7 +2,6 @@ import com.skt.metatron.discovery.common.preparation.RuleVisitorParser;
 import com.skt.metatron.discovery.common.preparation.rule.Derive;
 import com.skt.metatron.discovery.common.preparation.rule.Rule;
 import com.skt.metatron.teddy.DataFrame;
-import com.skt.metatron.teddy.Row;
 import com.skt.metatron.teddy.TeddyException;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -21,144 +20,150 @@ import static org.junit.Assert.assertEquals;
  */
 public class DeriveTest {
 
-    static String getResourcePath(String relPath, boolean fromHdfs) {
-        if (fromHdfs) {
-            throw new IllegalArgumentException("HDFS not supported yet");
-        }
-        URL url = DataFrameTest.class.getClassLoader().getResource(relPath);
-        return (new File(url.getFile())).getAbsolutePath();
+  static String getResourcePath(String relPath, boolean fromHdfs) {
+    if (fromHdfs) {
+        throw new IllegalArgumentException("HDFS not supported yet");
     }
+    URL url = DataFrameTest.class.getClassLoader().getResource(relPath);
+    return (new File(url.getFile())).getAbsolutePath();
+  }
 
-    public static String getResourcePath(String relPath) {
-        return getResourcePath(relPath, false);
-    }
+  public static String getResourcePath(String relPath) {
+    return getResourcePath(relPath, false);
+  }
 
-    private static Map<String, List<String[]>> grids = new HashMap<>();
+  private static Map<String, List<String[]>> grids = new HashMap<>();
 
-    static int limitRowCnt = 10000;
+  static int limitRowCnt = 10000;
 
-    static private List<String[]> loadGridCsv(String alias, String path) {
-        List<String[]> grid = new ArrayList<>();
+  static private List<String[]> loadGridCsv(String alias, String path) {
+    List<String[]> grid = new ArrayList<>();
 
-        BufferedReader br = null;
-        String line;
-        String cvsSplitBy = ",";
+    BufferedReader br = null;
+    String line;
+    String cvsSplitBy = ",";
 
+    try {
+      br = new BufferedReader(new InputStreamReader(new FileInputStream(getResourcePath(path))));
+      while ((line = br.readLine()) != null) {
+        String[] strCols = line.split(cvsSplitBy);
+        grid.add(strCols);
+        if (grid.size() == limitRowCnt)
+          break;
+      }
+    } catch (FileNotFoundException e) {
+      e.printStackTrace();
+    } catch (IOException e) {
+      e.printStackTrace();
+    } finally {
+      if (br != null) {
         try {
-            br = new BufferedReader(new InputStreamReader(new FileInputStream(getResourcePath(path))));
-            while ((line = br.readLine()) != null) {
-                String[] strCols = line.split(cvsSplitBy);
-                grid.add(strCols);
-                if (grid.size() == limitRowCnt)
-                    break;
-            }
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
+          br.close();
         } catch (IOException e) {
-            e.printStackTrace();
-        } finally {
-            if (br != null) {
-                try {
-                    br.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
+          e.printStackTrace();
         }
-
-        grids.put(alias, grid);
-        return grid;
+      }
     }
 
-    @BeforeClass
-    public static void setUp() throws Exception {
-        loadGridCsv("sample", "metatron_dataset/small/sample.csv");
-        loadGridCsv("null_contained", "metatron_dataset/small/null_contained.csv");
-    }
+    grids.put(alias, grid);
+    return grid;
+  }
 
-    // original dataset
-    // +----------+-------------+------+-----------+-----+------+
-    // |birth_date|contract_date|itemNo|       name|speed|weight|
-    // +----------+-------------+------+-----------+-----+------+
-    // |2010-01-01|   2017-01-01|     1|    Ferrari|  259|   800|
-    // |2000-01-01|   2017-01-01|  null|     Jaguar|  274|   998|
-    // |1990-01-01|   2017-01-01|     3|   Mercedes|  340|  1800|
-    // |1980-01-01|   2017-01-01|     4|       Audi|  345|   875|
-    // |1970-01-01|   2017-01-01|     5|Lamborghini|  355|  1490|
-    // |1970-01-01|   2017-01-01|     6|       null| null|  1490|
-    // +----------+-------------+------+-----------+-----+------+
+  @BeforeClass
+  public static void setUp() throws Exception {
+    loadGridCsv("sample", "metatron_dataset/small/sample.csv");
+    loadGridCsv("null_contained", "metatron_dataset/small/null_contained.csv");
+  }
 
-    @Test
-    public void testDerive1() throws IOException, TeddyException {
-        DataFrame null_contained = new DataFrame();
-        null_contained.setGrid(grids.get("null_contained"));
-        null_contained = DataFrameTest.prepare_null_contained(null_contained);
-        null_contained.show();
+  private DataFrame newNullContainedDataFrame() throws IOException, TeddyException {
+    DataFrame null_contained = new DataFrame();
+    null_contained.setGrid(grids.get("null_contained"));
+    null_contained = DataFrameTest.prepare_null_contained(null_contained);
+    null_contained.show();
+    return null_contained;
+  }
 
-        Rule rule = new RuleVisitorParser().parse("derive value: itemNo as: 'cate_if'");
-        DataFrame newDf = null_contained.doDerive((Derive) rule);
-        newDf.show();
-        assertEquals(new Long(1), newDf.objGrid.get(0).get("cate_if"));
-        assertEquals(null, newDf.objGrid.get(1).get("cate_if"));
-    }
+  @Test
+  public void testDerive1() throws IOException, TeddyException {
+    DataFrame null_contained = newNullContainedDataFrame();
 
-    @Test
-    public void testDerive2() throws IOException, TeddyException {
-        DataFrame null_contained = new DataFrame();
-        null_contained.setGrid(grids.get("null_contained"));
-        null_contained = DataFrameTest.prepare_null_contained(null_contained);
-        null_contained.show();
+    Rule rule = new RuleVisitorParser().parse("derive value: itemNo as: 'cate_if'");
+    DataFrame newDf = null_contained.doDerive((Derive) rule);
+    newDf.show();
+    assertEquals(new Long(1), newDf.objGrid.get(0).get("cate_if")); // 1
+    assertEquals(null, newDf.objGrid.get(1).get("cate_if"));        // null
+  }
 
-        Rule rule = new RuleVisitorParser().parse("derive value: if(itemNo) as: 'cate_if'");
-        DataFrame newDf = null_contained.doDerive((Derive) rule);
-        newDf.show();
-        assertEquals(true, newDf.objGrid.get(0).get("cate_if"));
-        assertEquals(false, newDf.objGrid.get(1).get("cate_if"));
-    }
+  @Test
+  public void testDerive2() throws IOException, TeddyException {
+    DataFrame null_contained = new DataFrame();
+    null_contained.setGrid(grids.get("null_contained"));
+    null_contained = DataFrameTest.prepare_null_contained(null_contained);
+    null_contained.show();
 
-    @Test
-    public void testDerive3() throws IOException, TeddyException {
-        DataFrame null_contained = new DataFrame();
-        null_contained.setGrid(grids.get("null_contained"));
-        null_contained = DataFrameTest.prepare_null_contained(null_contained);
-        null_contained.show();
+    Rule rule = new RuleVisitorParser().parse("derive value: if(itemNo) as: 'cate_if'");
+    DataFrame newDf = null_contained.doDerive((Derive) rule);
+    newDf.show();
+    assertEquals(true, newDf.objGrid.get(0).get("cate_if"));    // 1
+    assertEquals(false, newDf.objGrid.get(1).get("cate_if"));   // null
+  }
 
-        Rule rule = new RuleVisitorParser().parse("derive value: if(isnull(itemNo), '1', '2') as: 'cate_if'");
-        DataFrame newDf = null_contained.doDerive((Derive) rule);
-        newDf.show();
-        assertEquals("2", newDf.objGrid.get(0).get("cate_if"));
-        assertEquals("1", newDf.objGrid.get(1).get("cate_if"));
-    }
+  @Test
+  public void testDerive3() throws IOException, TeddyException {
+    DataFrame null_contained = new DataFrame();
+    null_contained.setGrid(grids.get("null_contained"));
+    null_contained = DataFrameTest.prepare_null_contained(null_contained);
+    null_contained.show();
 
-    @Test
-    public void testDerive4() throws IOException, TeddyException {
-        DataFrame null_contained = new DataFrame();
-        null_contained.setGrid(grids.get("null_contained"));
-        null_contained = DataFrameTest.prepare_null_contained(null_contained);
-        null_contained.show();
+    Rule rule = new RuleVisitorParser().parse("derive value: if(isnull(itemNo), '1', '2') as: 'cate_if'");
+    DataFrame newDf = null_contained.doDerive((Derive) rule);
+    newDf.show();
+    assertEquals("2", newDf.objGrid.get(0).get("cate_if"));   // 1
+    assertEquals("1", newDf.objGrid.get(1).get("cate_if"));   // null
+  }
 
-        Rule rule = new RuleVisitorParser().parse("derive value: if(itemNo, 1, 2) as: 'cate_if'");
-        DataFrame newDf = null_contained.doDerive((Derive) rule);
-        newDf.show();
+  @Test
+  public void testDerive4() throws IOException, TeddyException {
+    DataFrame null_contained = new DataFrame();
+    null_contained.setGrid(grids.get("null_contained"));
+    null_contained = DataFrameTest.prepare_null_contained(null_contained);
+    null_contained.show();
 
-        assertEquals(new Long(1), newDf.objGrid.get(0).get("cate_if"));
-        assertEquals(new Long(2), newDf.objGrid.get(1).get("cate_if"));
-    }
+    Rule rule = new RuleVisitorParser().parse("derive value: if(itemNo, 1, 2) as: 'cate_if'");
+    DataFrame newDf = null_contained.doDerive((Derive) rule);
+    newDf.show();
 
-    @Test
-    public void testDerive5() throws IOException, TeddyException {
-        DataFrame null_contained = new DataFrame();
-        null_contained.setGrid(grids.get("null_contained"));
-        null_contained = DataFrameTest.prepare_null_contained(null_contained);
-        null_contained.show();
+    assertEquals(new Long(1), newDf.objGrid.get(0).get("cate_if"));   // 1
+    assertEquals(new Long(2), newDf.objGrid.get(1).get("cate_if"));   // null
+  }
 
-        Rule rule = new RuleVisitorParser().parse("derive value: if(itemNo, 1.0, 2.0) as: 'cate_if'");
-        DataFrame newDf = null_contained.doDerive((Derive) rule);
-        newDf.show();
+  @Test
+  public void testDerive5() throws IOException, TeddyException {
+    DataFrame null_contained = new DataFrame();
+    null_contained.setGrid(grids.get("null_contained"));
+    null_contained = DataFrameTest.prepare_null_contained(null_contained);
+    null_contained.show();
 
-        assertEquals(new Double(1.0), newDf.objGrid.get(0).get("cate_if"));
-        assertEquals(new Double(2.0), newDf.objGrid.get(1).get("cate_if"));
-    }
+    Rule rule = new RuleVisitorParser().parse("derive value: if(itemNo, 1.0, 2.0) as: 'cate_if'");
+    DataFrame newDf = null_contained.doDerive((Derive) rule);
+    newDf.show();
+
+    assertEquals(new Double(1.0), newDf.objGrid.get(0).get("cate_if"));   // 1
+    assertEquals(new Double(2.0), newDf.objGrid.get(1).get("cate_if"));   // null
+  }
+
+  // original dataset
+  // +----------+-------------+------+-----------+-----+------+
+  // |birth_date|contract_date|itemNo|       name|speed|weight|
+  // +----------+-------------+------+-----------+-----+------+
+  // |2010-01-01|   2017-01-01|     1|    Ferrari|  259|   800|
+  // |2000-01-01|   2017-01-01|  null|     Jaguar|  274|   998|
+  // |1990-01-01|   2017-01-01|     3|   Mercedes|  340|  1800|
+  // |1980-01-01|   2017-01-01|     4|       Audi|  345|   875|
+  // |1970-01-01|   2017-01-01|     5|Lamborghini|  355|  1490|
+  // |1970-01-01|   2017-01-01|     6|       null| null|  1490|
+  // +----------+-------------+------+-----------+-----+------+
+
 //
 //    @Test
 //    public void testDerive6() {
