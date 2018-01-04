@@ -1029,6 +1029,7 @@ public class DataFrame implements Serializable {
   }
 
   private String checkNewColName(String newColName, boolean convert) throws TeddyException {
+    newColName = newColName.replaceAll("[~!@#$^%&*\\\\(\\\\)_+={}\\\\[\\\\]|;:\\\"'<,>.?' /\\\\\\\\-]", "_");
     if (colNames.contains(newColName)) {
       if (convert) {
         return checkNewColName(newColName + "_1", convert);
@@ -1614,7 +1615,7 @@ public class DataFrame implements Serializable {
   }
 
   private String buildPivotNewColName(AggrType aggrType, String aggrTargetColName,
-                                      List<String> pivotColNames, Row row) {
+                                      List<String> pivotColNames, Row row) throws TeddyException {
     String newColName = null;
 
     switch (aggrType) {
@@ -1638,7 +1639,7 @@ public class DataFrame implements Serializable {
     for (String pivotColName : pivotColNames) {
       newColName += "_" + row.get(pivotColName);
     }
-    return newColName;
+    return checkNewColName(newColName, true);
   }
 
   public DataFrame doPivot(Pivot pivot) throws TeddyException {
@@ -1653,7 +1654,9 @@ public class DataFrame implements Serializable {
     int rowno, colno;
 
     // group by expression -> group by colnames
-    if (groupByColExpr instanceof Identifier.IdentifierExpr) {
+    if (groupByColExpr == null) {
+      /* NOP */
+    } else if (groupByColExpr instanceof Identifier.IdentifierExpr) {
       groupByColNames.add(((Identifier.IdentifierExpr) groupByColExpr).getValue());
     } else if (groupByColExpr instanceof Identifier.IdentifierArrayExpr) {
       groupByColNames.addAll(((Identifier.IdentifierArrayExpr) groupByColExpr).getValue());
@@ -1813,7 +1816,7 @@ public class DataFrame implements Serializable {
 
   public DataFrame doUnpivot(Unpivot unpivot) throws TeddyException {
     Expression unpivotColExpr = unpivot.getCol();
-    int groupEvery = unpivot.getGroupEvery();
+    int groupEvery = (unpivot.getGroupEvery() == null) ? 1 : unpivot.getGroupEvery();
     List<String> unpivotColNames = new ArrayList<>();
     List<String> fixedColNames = new ArrayList<>();
 
