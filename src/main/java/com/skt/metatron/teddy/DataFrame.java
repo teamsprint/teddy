@@ -331,7 +331,7 @@ public class DataFrame implements Serializable {
       DataType left = decideType(((Expr.BinaryNumericOpExprBase) expr).getLeft());
       DataType right = decideType(((Expr.BinaryNumericOpExprBase) expr).getRight());
       if (left == right) {
-        return left;
+        return (expr instanceof Expr.BinDivExpr) ? DataType.DOUBLE : left;    // for compatability to twinkle, which acts like this because of spark's behavior
       } else if (left == DataType.DOUBLE && right == DataType.LONG || left == DataType.LONG && right == DataType.DOUBLE) {
         // 한쪽이 double인 경우는 허용
         return DataType.DOUBLE;
@@ -537,6 +537,9 @@ public class DataFrame implements Serializable {
       for (int colno = 0; colno < newDf.colCnt; colno++) {
         if (colno == targetColNo) {
           Object resultObj = eval(expr, rowno);
+          if (expr instanceof Expr.BinDivExpr && resultObj instanceof Long) {   // for compatability to twinkle, which acts like this because of spark's behavior
+            resultObj = (Double.valueOf((Long)resultObj));
+          }
           if (newDf.colTypes.get(colno) == DataType.BOOLEAN) {
             newRow.add(targetColName, Boolean.valueOf(((Long)resultObj).longValue() == 1));
           } else if (newDf.colTypes.get(colno) == DataType.STRING) {

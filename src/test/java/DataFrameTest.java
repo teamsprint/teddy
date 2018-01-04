@@ -174,7 +174,7 @@ public class DataFrameTest {
 
     ruleStrings.add("settype col: itemNo type: long");
     ruleStrings.add("settype col: speed type: long");
-    ruleStrings.add("settype col: weight type: double");
+    ruleStrings.add("settype col: weight type: long");
 
     df = apply_rule(df, ruleStrings);
     return df;
