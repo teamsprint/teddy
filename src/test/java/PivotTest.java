@@ -90,7 +90,7 @@ public class PivotTest {
     DataFrame newDf = multi.doPivot((Pivot) rule);
     newDf.show();
 
-    assertEquals(new Long(124), newDf.objGrid.get(0).get("sum_measure_00_00"));
+    assertEquals(new Long(124), newDf.rows.get(0).get("sum_measure_00_00"));
   }
 
   @Test
@@ -100,7 +100,7 @@ public class PivotTest {
     DataFrame newDf = multi.doPivot((Pivot) rule);
     newDf.show();
 
-    assertEquals(new Long(30), newDf.objGrid.get(0).get("sum_measure_00_00"));
+    assertEquals(new Long(30), newDf.rows.get(0).get("sum_measure_00_00"));
   }
 
   @Test
@@ -110,7 +110,7 @@ public class PivotTest {
     DataFrame newDf = multi.doPivot((Pivot) rule);
     newDf.show();
 
-    assertEquals(new Long(30), newDf.objGrid.get(0).get("sum_measure_00_00_true"));
+    assertEquals(new Long(30), newDf.rows.get(0).get("sum_measure_00_00_true"));
   }
 
   @Test
@@ -120,7 +120,7 @@ public class PivotTest {
     DataFrame newDf = multi.doPivot((Pivot) rule);
     newDf.show();
 
-    assertEquals(new Long(30), newDf.objGrid.get(0).get("sum_measure_00_00_true"));
+    assertEquals(new Long(30), newDf.rows.get(0).get("sum_measure_00_00_true"));
   }
 
   @Test
@@ -130,7 +130,7 @@ public class PivotTest {
     DataFrame newDf = multi.doPivot((Pivot) rule);
     newDf.show();
 
-    assertEquals(new Long(32), newDf.objGrid.get(0).get("sum_measure_00_00_false"));
+    assertEquals(new Long(32), newDf.rows.get(0).get("sum_measure_00_00_false"));
   }
 
   @Test
@@ -140,7 +140,7 @@ public class PivotTest {
     DataFrame newDf = multi.doPivot((Pivot) rule);
     newDf.show();
 
-    assertEquals(new Long(0), newDf.objGrid.get(0).get("sum_measure_00_00_false"));
+    assertEquals(new Long(0), newDf.rows.get(0).get("sum_measure_00_00_false"));
   }
 
   @Test
@@ -150,7 +150,7 @@ public class PivotTest {
     DataFrame newDf = multi.doPivot((Pivot) rule);
     newDf.show();
 
-    assertEquals(new Long(0), newDf.objGrid.get(0).get("sum_measure_00_00_false_3"));
+    assertEquals(new Long(0), newDf.rows.get(0).get("sum_measure_00_00_false_3"));
   }
 
   @Test
@@ -160,7 +160,7 @@ public class PivotTest {
     DataFrame newDf = multi.doPivot((Pivot) rule);
     newDf.show();
 
-    assertEquals(new Long(8), newDf.objGrid.get(0).get("row_count_00_00_0_0"));
+    assertEquals(new Long(8), newDf.rows.get(0).get("row_count_00_00_0_0"));
   }
 
   @Test
@@ -170,7 +170,7 @@ public class PivotTest {
     DataFrame newDf = multi.doUnpivot((Unpivot) rule);
     newDf.show();
 
-    assertEquals("00:00", newDf.objGrid.get(0).get("value1"));
+    assertEquals("00:00", newDf.rows.get(0).get("value1"));
   }
 
   @Test
@@ -180,7 +180,7 @@ public class PivotTest {
     DataFrame newDf = multi.doUnpivot((Unpivot) rule);
     newDf.show();
 
-    assertEquals("2", newDf.objGrid.get(0).get("value1"));
+    assertEquals("2", newDf.rows.get(0).get("value1"));
   }
 
   @Test
@@ -190,7 +190,7 @@ public class PivotTest {
     DataFrame newDf = multi.doUnpivot((Unpivot) rule);
     newDf.show();
 
-    assertEquals("2", newDf.objGrid.get(0).get("value1"));
+    assertEquals("2", newDf.rows.get(0).get("value1"));
   }
 
   @Test
@@ -200,6 +200,6 @@ public class PivotTest {
     DataFrame newDf = multi.doUnpivot((Unpivot) rule);
     newDf.show();
 
-    assertEquals("2", newDf.objGrid.get(0).get("value1"));
+    assertEquals("2", newDf.rows.get(0).get("value1"));
   }
 }

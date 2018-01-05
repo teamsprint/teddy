@@ -55,29 +55,8 @@ public class DataFrame implements Serializable {
     return DataType.UNKNOWN;
   }
 
-  private static ExprType getExprType(DataType dataType) {
-    switch (dataType) {
-      case DOUBLE:
-        return ExprType.DOUBLE;
-      case LONG:
-        return ExprType.LONG;
-      case STRING:
-        return ExprType.STRING;
-      case BOOLEAN:
-        // BOOLEAN으로 호출되는 경우는 Idenditier의 경우이다.
-        // 1st-depth인 경우 아무거나 줘도 상관없지만,
-        // 다른 expression의 하부로 쓰이는 경우, isNumeric assertion을 통과하기 위해서는 numeric중에 하나를 줘야한다.
-        return ExprType.DOUBLE;
-      default:
-        break;
-    }
-    LOGGER.error("getExprType(): cannot be called when dataType={}", dataType.name());
-    return ExprType.DOUBLE;
-  }
-
   private DataType getTypeOfColumn(String colName) throws TeddyException {
-    int i;
-    for (i = 0; i < colCnt; i++) {
+    for (int i = 0; i < colCnt; i++) {
       if (colNames.get(i).equals(colName)) {
         return colTypes.get(i);
       }
@@ -88,7 +67,7 @@ public class DataFrame implements Serializable {
   public int colCnt;
   public List<String> colNames;
   public List<DataType> colTypes;
-  public List<Row> objGrid;
+  public List<Row> rows;
 
   public String strRule;
 
@@ -96,7 +75,7 @@ public class DataFrame implements Serializable {
     colCnt = 0;
     colNames = new ArrayList<>();
     colTypes = new ArrayList<>();
-    objGrid = new ArrayList<>();
+    rows = new ArrayList<>();
 
     strRule = "ORIGINAL";
   }
@@ -114,7 +93,6 @@ public class DataFrame implements Serializable {
 
     if (colCnt == 0) {
       colCnt = strGrid.get(0).length;
-
       for (int colno = 1; colno <= colCnt; colno++) {
         colNames.add("column" + colno);
         colTypes.add(DataType.STRING);
@@ -126,7 +104,7 @@ public class DataFrame implements Serializable {
       for (int colno = 0; colno < colCnt; colno++) {
         row.add(colNames.get(colno), strRow[colno]);
       }
-      objGrid.add(row);
+      rows.add(row);
     }
   }
 
@@ -135,13 +113,13 @@ public class DataFrame implements Serializable {
   }
 
   public void show(int limit) {
-    limit = objGrid.size() < limit ? objGrid.size() : limit;
+    limit = rows.size() < limit ? rows.size() : limit;
     List<Integer> widths = new ArrayList<>();
     for (int colno = 0; colno < colCnt; colno++) {
       widths.add(Math.max(colNames.get(colno).length(), colTypes.get(colno).toString().length()));
     }
     for (int rowno = 0; rowno < limit; rowno++) {
-      Row row = objGrid.get(rowno);
+      Row row = rows.get(rowno);
       for (int colno = 0; colno < row.size(); colno++) {
         Object objCol = row.get(colNames.get(colno));
         int colLen = (objCol == null) ? 4 : objCol.toString().length();   // 4 for "null"
@@ -150,13 +128,12 @@ public class DataFrame implements Serializable {
         }
       }
     }
-
     showSep(widths);
     showColNames(widths);
     showColTypes(widths);
     showSep(widths);
     for (int rowno = 0; rowno < limit; rowno++) {
-      showRow(widths, objGrid.get(rowno));
+      showRow(widths, rows.get(rowno));
     }
     showSep(widths);
   }
@@ -233,14 +210,8 @@ public class DataFrame implements Serializable {
 
     List<Integer> selectedColNos = new ArrayList<>();
     for (int i = 0; i < colCnt; i++) {
-      if (select) {
-        if (targetColNames.contains(colNames.get(i)) == true) {
-          selectedColNos.add(i);
-        }
-      } else {
-        if (targetColNames.contains(colNames.get(i)) == false) {
-          selectedColNos.add(i);
-        }
+      if (targetColNames.contains(colNames.get(i)) == select) {
+        selectedColNos.add(i);
       }
     }
 
@@ -250,12 +221,12 @@ public class DataFrame implements Serializable {
       newDf.colTypes.add(this.colTypes.get(colno));
     }
 
-    for (Row row : this.objGrid) {
+    for (Row row : this.rows) {
       Row newRow = new Row();
       for (int colno : selectedColNos) {
         newRow.add(colNames.get(colno), row.get(colno));
       }
-      newDf.objGrid.add(newRow);
+      newDf.rows.add(newRow);
     }
     return newDf;
   }
@@ -278,8 +249,8 @@ public class DataFrame implements Serializable {
       newDf.colTypes.add(colTypes.get(colno));
     }
 
-    for (int rowno = 0; rowno < objGrid.size(); rowno++) {
-      Row row = objGrid.get(rowno);
+    for (int rowno = 0; rowno < rows.size(); rowno++) {
+      Row row = rows.get(rowno);
       Row newRow = new Row();
       for (int colno = 0; colno < colCnt; colno++) {
         if (colno == targetColNo) {
@@ -288,21 +259,9 @@ public class DataFrame implements Serializable {
           newRow.add(colNames.get(colno), row.get(colno));
         }
       }
-      newDf.objGrid.add(newRow);
+      newDf.rows.add(newRow);
     }
     return newDf;
-  }
-
-  public String parseRuleString(String ruleString) throws IOException {
-    Rule rule = new RuleVisitorParser().parse(ruleString);
-    ObjectMapper mapper = new ObjectMapper();
-    String json = null;
-    try {
-      json = mapper.writeValueAsString(rule);
-    } catch (JsonProcessingException e) {
-      e.printStackTrace();
-    }
-    return json;
   }
 
   private void assertArgc(int desirable, List<Expr> args, String func) throws TeddyException {
@@ -487,7 +446,7 @@ public class DataFrame implements Serializable {
       default:
         throw new TeddyException("cast(): cannot cast from " + toType);
     }
-    return obj.toString();
+    return obj;
   }
 
   public DataFrame doSetType(SetType setType) throws TeddyException {
@@ -511,13 +470,13 @@ public class DataFrame implements Serializable {
       throw new TeddyException("doSetType(): column not found");
     }
 
-    for (int rowno = 0; rowno < objGrid.size(); rowno++) {
-      Row row = objGrid.get(rowno);
+    for (int rowno = 0; rowno < rows.size(); rowno++) {
+      Row row = rows.get(rowno);
       Row newRow = new Row();
       for (int colno = 0; colno < colCnt; colno++) {
         newRow.add(colNames.get(colno), colno == targetColNo ? cast(row.get(colno), colTypes.get(colno), toType) : row.get(colno));
       }
-      newDf.objGrid.add(newRow);
+      newDf.rows.add(newRow);
     }
     return newDf;
   }
@@ -545,12 +504,12 @@ public class DataFrame implements Serializable {
       newDf.colCnt = colCnt;
     }
 
-    for (int rowno = 0; rowno < objGrid.size(); rowno++) {
-      Row row = objGrid.get(rowno);
+    for (int rowno = 0; rowno < rows.size(); rowno++) {
+      Row row = rows.get(rowno);
       Row newRow = new Row();
       for (int colno = 0; colno < newDf.colCnt; colno++) {
         if (colno == targetColNo) {
-          ExprEval exprEval = ((Expr) expr).eval(objGrid.get(rowno));
+          ExprEval exprEval = ((Expr) expr).eval(rows.get(rowno));
           if (newDf.colTypes.get(colno) == DataType.BOOLEAN) {
             newRow.add(targetColName, Boolean.valueOf(exprEval.longValue() == 1));
           } else if (newDf.colTypes.get(colno) == DataType.STRING) {
@@ -567,7 +526,7 @@ public class DataFrame implements Serializable {
           newRow.add(colNames.get(colno), row.get(colno));
         }
       }
-      newDf.objGrid.add(newRow);
+      newDf.rows.add(newRow);
     }
     return newDf;
   }
@@ -595,23 +554,23 @@ public class DataFrame implements Serializable {
 
     newDf.colCnt = colCnt;
 
-    Row targetRow = objGrid.get(targetRowno);
+    Row targetRow = rows.get(targetRowno);
     for (int colno = 0; colno < colCnt; colno++) {
       newDf.colNames.add(colno, (String)targetRow.get(colno));  // colno 필요?
       newDf.colTypes.add(colTypes.get(colno));
     }
 
-    for (int rowno = 0; rowno < objGrid.size(); rowno++) {
+    for (int rowno = 0; rowno < rows.size(); rowno++) {
       if (rowno == targetRowno) {
         continue;
       }
 
-      Row row = objGrid.get(rowno);
+      Row row = rows.get(rowno);
       Row newRow = new Row();
       for (int colno = 0; colno < colCnt; colno++) {
         newRow.add(newDf.colNames.get(colno), row.get(colno));
       }
-      newDf.objGrid.add(newRow);
+      newDf.rows.add(newRow);
     }
 
     return newDf;
@@ -625,7 +584,7 @@ public class DataFrame implements Serializable {
     for (String colName : rightSelectColNames) {
       newRow.add(this.colNames.get(newRow.colCnt), rrow.get(colName));  // 필요한 경우 "r_"이 붙은 컬럼 이름 (여기까지 온 것은 이미 붙은 상황)
     }
-    objGrid.add(newRow);
+    rows.add(newRow);
   }
 
   private void gatherPredicates(Expression expr, DataFrame rightDf,
@@ -716,20 +675,20 @@ public class DataFrame implements Serializable {
     List<Object[]> robjsList = new ArrayList<>();
 
     for (int i = 0; i < leftPredicates.size(); i++) {
-      lobjsList.add(new Object[objGrid.size()]);
-      robjsList.add(new Object[rightDf.objGrid.size()]);
+      lobjsList.add(new Object[rows.size()]);
+      robjsList.add(new Object[rightDf.rows.size()]);
     }
 
     Row lrow = null;
     Row rrow = null;
-    for (int lrowno = 0; lrowno < objGrid.size(); lrowno++) {
-      lrow = objGrid.get(lrowno);
+    for (int lrowno = 0; lrowno < rows.size(); lrowno++) {
+      lrow = rows.get(lrowno);
       for (int i = 0; i < leftPredicates.size(); i++) {
         (lobjsList.get(i))[lrowno] = leftPredicates.get(i).eval(lrow).value();
       }
     }
-    for (int rrowno = 0; rrowno < rightDf.objGrid.size(); rrowno++) {
-      rrow = rightDf.objGrid.get(rrowno);
+    for (int rrowno = 0; rrowno < rightDf.rows.size(); rrowno++) {
+      rrow = rightDf.rows.get(rrowno);
       for (int i = 0; i < leftPredicates.size(); i++) {
         (robjsList.get(i))[rrowno] = rightPredicates.get(i).eval(rrow).value();
       }
@@ -744,8 +703,8 @@ public class DataFrame implements Serializable {
       }
     }
 
-    for (int lrowno = 0; lrowno < objGrid.size(); lrowno++) {
-      for (int rrowno = 0; rrowno < rightDf.objGrid.size(); rrowno++) {
+    for (int lrowno = 0; lrowno < rows.size(); lrowno++) {
+      for (int rrowno = 0; rrowno < rightDf.rows.size(); rrowno++) {
         boolean equal = true;
         for (int i = 0; i < lobjsList.size(); i++) {
           if (!(lobjsList.get(i))[lrowno].equals((robjsList.get(i))[rrowno])) {
@@ -755,11 +714,11 @@ public class DataFrame implements Serializable {
         }
 
         if (equal) {
-          lrow = objGrid.get(lrowno);
-          rrow = rightDf.objGrid.get(rrowno);
+          lrow = rows.get(lrowno);
+          rrow = rightDf.rows.get(rrowno);
           newDf.addJoinedRow(lrow, leftSelectColNames, rrow, rightSelectColNames);
 
-          if (newDf.objGrid.size() == limitRowCnt) {
+          if (newDf.rows.size() == limitRowCnt) {
             return newDf;
           }
         }
@@ -778,12 +737,12 @@ public class DataFrame implements Serializable {
     // master도 추가
     slaveDfs.add(0, this);
     for (DataFrame df : slaveDfs) {
-      for (Row row : df.objGrid) {
-        if (newDf.objGrid.size() >= limitRowCnt) {
+      for (Row row : df.rows) {
+        if (newDf.rows.size() >= limitRowCnt) {
           return newDf;
         }
 
-        newDf.objGrid.add(row);
+        newDf.rows.add(row);
       }
     }
     return newDf;
@@ -838,8 +797,8 @@ public class DataFrame implements Serializable {
       throw new TeddyException("doExtract(): illegal pattern type: " + expr.toString());
     }
 
-    for (rowno = 0; rowno < objGrid.size(); rowno++) {
-      Row row = objGrid.get(rowno);
+    for (rowno = 0; rowno < rows.size(); rowno++) {
+      Row row = rows.get(rowno);
       Row newRow = new Row();
       for (String colName : colNames) {
         newRow.add(colName, row.get(colName));
@@ -855,7 +814,7 @@ public class DataFrame implements Serializable {
           newRow.add(newColNames.get(i), "");
         }
       }
-      newDf.objGrid.add(newRow);
+      newDf.rows.add(newRow);
     }
 
     return newDf;
@@ -910,8 +869,8 @@ public class DataFrame implements Serializable {
       throw new TeddyException("doCountPattern(): illegal pattern type: " + expr.toString());
     }
 
-    for (rowno = 0; rowno < objGrid.size(); rowno++) {
-      Row row = objGrid.get(rowno);
+    for (rowno = 0; rowno < rows.size(); rowno++) {
+      Row row = rows.get(rowno);
       Row newRow = new Row();
       for (String colName : colNames) {
         newRow.add(colName, row.get(colName));
@@ -924,7 +883,7 @@ public class DataFrame implements Serializable {
         count++;
       }
       newRow.add(newColName, count);
-      newDf.objGrid.add(newRow);
+      newDf.rows.add(newRow);
     }
 
     return newDf;
@@ -947,8 +906,8 @@ public class DataFrame implements Serializable {
     newDf.colCnt = colCnt;
     newDf.colNames.addAll(colNames);
     newDf.colTypes.addAll(colTypes);
-    for (rowno = 0; rowno < objGrid.size(); rowno++) {
-      newDf.objGrid.add(objGrid.get(rowno));
+    for (rowno = 0; rowno < rows.size(); rowno++) {
+      newDf.rows.add(rows.get(rowno));
     }
 
     String patternStr;
@@ -960,16 +919,16 @@ public class DataFrame implements Serializable {
       throw new TeddyException("deReplace(): illegal pattern type: " + expr.toString());
     }
 
-    for (rowno = 0; rowno < newDf.objGrid.size(); rowno++) {
-      Row row = newDf.objGrid.get(rowno);
+    for (rowno = 0; rowno < newDf.rows.size(); rowno++) {
+      Row row = newDf.rows.get(rowno);
       String targetStr = (String) row.get(targetColName);
       Pattern pattern = Pattern.compile(patternStr);
       Matcher matcher = pattern.matcher(targetStr);
       if (matcher.find()) {
         if (globalReplace) {
-          row.set(targetColName, matcher.replaceAll(stripSingleQuote(((Expr) withExpr).eval(objGrid.get(rowno)).stringValue())));
+          row.set(targetColName, matcher.replaceAll(stripSingleQuote(((Expr) withExpr).eval(rows.get(rowno)).stringValue())));
         } else {
-          row.set(targetColName, matcher.replaceFirst(stripSingleQuote(((Expr) withExpr).eval(objGrid.get(rowno)).stringValue())));
+          row.set(targetColName, matcher.replaceFirst(stripSingleQuote(((Expr) withExpr).eval(rows.get(rowno)).stringValue())));
         }
       }
     }
@@ -1004,8 +963,8 @@ public class DataFrame implements Serializable {
     newDf.colNames.add(as);
     newDf.colTypes.add(into.equalsIgnoreCase("ARRAY") ? DataType.ARRAY : DataType.MAP);
 
-    for (rowno = 0; rowno < objGrid.size(); rowno++) {
-      Row row  = objGrid.get(rowno);
+    for (rowno = 0; rowno < rows.size(); rowno++) {
+      Row row  = rows.get(rowno);
       Row newRow = new Row();
       for (colno = 0; colno < colCnt; colno++) {
         newRow.add(colNames.get(colno), row.get(colno));
@@ -1024,7 +983,7 @@ public class DataFrame implements Serializable {
         }
         newRow.add(as, "{" + String.join(",", quotedKayVals) + "}");
       }
-      newDf.objGrid.add(newRow);
+      newDf.rows.add(newRow);
     }
 
     return newDf;
@@ -1114,8 +1073,8 @@ public class DataFrame implements Serializable {
 
     ObjectMapper mapper = new ObjectMapper();
 
-    for (rowno = 0; rowno < objGrid.size(); rowno++) {
-      Row row = objGrid.get(rowno);
+    for (rowno = 0; rowno < rows.size(); rowno++) {
+      Row row = rows.get(rowno);
       Row newRow = new Row();
       for (colno = 0; colno < colCnt; colno++) {
         newRow.add(colNames.get(colno), row.get(colno));
@@ -1153,7 +1112,7 @@ public class DataFrame implements Serializable {
         }
         newRow.add(newColName, map.get(mapKey));
       }
-      newDf.objGrid.add(newRow);
+      newDf.rows.add(newRow);
     }
     return newDf;
   }
@@ -1187,7 +1146,7 @@ public class DataFrame implements Serializable {
       }
     }
 
-    Iterator<Row> iter = objGrid.iterator();
+    Iterator<Row> iter = rows.iterator();
     Row row = null;     // of aggregatedDf
     Row newRow = null;  // of pivotedDf
     while (iter.hasNext()) {
@@ -1207,7 +1166,7 @@ public class DataFrame implements Serializable {
             newRow.add(colName, row.get(colNames.get(colno)));
           }
         }
-        newDf.objGrid.add(newRow);
+        newDf.rows.add(newRow);
       }
     }
     return newDf;
@@ -1251,8 +1210,8 @@ public class DataFrame implements Serializable {
       }
     }
 
-    for (rowno = 0; rowno < objGrid.size(); rowno++) {
-      Row row = objGrid.get(rowno);
+    for (rowno = 0; rowno < rows.size(); rowno++) {
+      Row row = rows.get(rowno);
       Row newRow = new Row();
       for (colno = 0; colno < colCnt; colno++) {
         newRow.add(colNames.get(colno), row.get(colno));
@@ -1263,7 +1222,7 @@ public class DataFrame implements Serializable {
         sb.append(with).append(row.get(targetColNames.get(i)));
       }
       newRow.add(as, sb.toString());
-      newDf.objGrid.add(newRow);
+      newDf.rows.add(newRow);
     }
     return newDf;
   }
@@ -1322,8 +1281,8 @@ public class DataFrame implements Serializable {
       throw new TeddyException("doSplit(): illegal pattern type: " + expr.toString());
     }
 
-    for (rowno = 0; rowno < objGrid.size(); rowno++) {
-      Row row = objGrid.get(rowno);
+    for (rowno = 0; rowno < rows.size(); rowno++) {
+      Row row = rows.get(rowno);
       Row newRow = new Row();
       for (colno = 0; colno < colCnt; colno++) {
         newRow.add(colNames.get(colno), row.get(colno));
@@ -1349,7 +1308,7 @@ public class DataFrame implements Serializable {
           }
         }
       }
-      newDf.objGrid.add(newRow);
+      newDf.rows.add(newRow);
     }
 
     return newDf;
@@ -1435,8 +1394,8 @@ public class DataFrame implements Serializable {
       }
     }
 
-    for (rowno = 0; rowno < objGrid.size(); rowno++) {
-      Row row = objGrid.get(rowno);
+    for (rowno = 0; rowno < rows.size(); rowno++) {
+      Row row = rows.get(rowno);
       List<Object> groupByKey = new ArrayList<>();
       for (int i = 0; i < groupByColnos.size(); i++) {
         groupByKey.add(row.get(groupByColnos.get(i)));
@@ -1542,7 +1501,7 @@ public class DataFrame implements Serializable {
         newRow.add(groupByColNames.get(i++), groupByValue);
       }
 
-      newDf.objGrid.add(newRow);
+      newDf.rows.add(newRow);
     }
 
     return newDf;
@@ -1766,7 +1725,7 @@ public class DataFrame implements Serializable {
       }
 
       Map<String, Object> pivotColGroupKey = null;
-      for (Row row : aggregatedDf.objGrid) {
+      for (Row row : aggregatedDf.rows) {
         if (pivotColGroupKey == null || groupByKeyChanged(row, pivotColNames, pivotColGroupKey)) {
           newColName = buildPivotNewColName(aggrType, aggrTargetColName, pivotColNames, row);
 
@@ -1794,7 +1753,7 @@ public class DataFrame implements Serializable {
     aggregatedDf = aggregatedDf.doSortInternal(groupByColNames);
     Map<String, Object> groupByKey = null;
 
-    Iterator<Row> iter = aggregatedDf.objGrid.iterator();
+    Iterator<Row> iter = aggregatedDf.rows.iterator();
     Row row = null;     // of aggregatedDf
     Row newRow = null;  // of pivotedDf
     while (iter.hasNext()) {
@@ -1803,7 +1762,7 @@ public class DataFrame implements Serializable {
         newRow = newPivotRow(row, pivotedDf.colNames, pivotedDf.colTypes, groupByColNames);
         groupByKey = buildGroupByKey(row, groupByColNames);
       } else if (groupByKeyChanged(row, groupByColNames, groupByKey)) {
-        pivotedDf.objGrid.add(newRow);
+        pivotedDf.rows.add(newRow);
         newRow = newPivotRow(row, pivotedDf.colNames, pivotedDf.colTypes, groupByColNames);
         groupByKey = buildGroupByKey(row, groupByColNames);
       }
@@ -1818,7 +1777,7 @@ public class DataFrame implements Serializable {
                 row.get(i));
       }
     }
-    pivotedDf.objGrid.add(newRow);
+    pivotedDf.rows.add(newRow);
 
     return pivotedDf;
   }
@@ -1882,7 +1841,7 @@ public class DataFrame implements Serializable {
       }
     }
 
-    Iterator<Row> iter = objGrid.iterator();
+    Iterator<Row> iter = rows.iterator();
     Row row = null;     // of aggregatedDf
     Row newRow = null;  // of pivotedDf
     while (iter.hasNext()) {
@@ -1897,7 +1856,7 @@ public class DataFrame implements Serializable {
         newRow.add("key" + keyNo, unpivotColName);
         newRow.add("value" + keyNo, row.get(unpivotColName));
         if (groupEvery == 1) {
-          newDf.objGrid.add(newRow);
+          newDf.rows.add(newRow);
           keyNo = 1;
           newRow = new Row();
           for (String fixedColName : fixedColNames) {
@@ -1910,7 +1869,7 @@ public class DataFrame implements Serializable {
         keyNo++;
       }
       if (groupEvery != 1) {
-        newDf.objGrid.add(newRow);
+        newDf.rows.add(newRow);
       }
     }
     return newDf;
@@ -1924,11 +1883,11 @@ public class DataFrame implements Serializable {
     newDf.colNames.addAll(colNames);
     newDf.colTypes.addAll(colTypes);
 
-    for (Row row : objGrid) {
-      newDf.objGrid.add(row);
+    for (Row row : rows) {
+      newDf.rows.add(row);
     }
 
-    for (Row row : newDf.objGrid) {
+    for (Row row : newDf.rows) {
       row.cmpKeyIdxs = new ArrayList<>();
       row.cmpKeyTypes = new ArrayList<>();
     }
@@ -1938,7 +1897,7 @@ public class DataFrame implements Serializable {
       String orderByColName = orderByColNames.get(i);
       for (colno = 0; colno < colCnt; colno++) {
         if (colNames.get(colno).equals(orderByColName)) {
-          for (Row row : newDf.objGrid) {
+          for (Row row : newDf.rows) {
             row.cmpKeyIdxs.add(colno);
             row.cmpKeyTypes.add(colTypes.get(colno));
           }
@@ -1950,7 +1909,7 @@ public class DataFrame implements Serializable {
       }
     }
 
-    newDf.objGrid.sort(new Comparator<Row>() {
+    newDf.rows.sort(new Comparator<Row>() {
       @Override
       public int compare(Row row1, Row row2) {
         int result;
@@ -2027,9 +1986,9 @@ public class DataFrame implements Serializable {
     newDf.colNames.addAll(colNames);
     newDf.colTypes.addAll(colTypes);
 
-    for (int rowno = 0; rowno < objGrid.size(); rowno++) {
-      if (((Expr) condExpr).eval(objGrid.get(rowno)).longValue() == ((keep) ? 1 : 0)) {
-        newDf.objGrid.add(objGrid.get(rowno));
+    for (int rowno = 0; rowno < rows.size(); rowno++) {
+      if (((Expr) condExpr).eval(rows.get(rowno)).longValue() == ((keep) ? 1 : 0)) {
+        newDf.rows.add(rows.get(rowno));
       }
     }
     return newDf;
@@ -2118,14 +2077,14 @@ public class DataFrame implements Serializable {
       }
     }
 
-    for (rowno = 0; rowno < objGrid.size(); rowno++) {
-      Row row = objGrid.get(rowno);
+    for (rowno = 0; rowno < rows.size(); rowno++) {
+      Row row = rows.get(rowno);
       Row newRow = new Row();
       for (int i = 0; i < targetOrder.size(); i++) {
         colno = targetOrder.get(i);
         newRow.add(colNames.get(colno), row.get(colno));
       }
-      newDf.objGrid.add(newRow);
+      newDf.rows.add(newRow);
     }
     return newDf;
   }

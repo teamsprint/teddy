@@ -100,8 +100,8 @@ public class DeriveTest {
     Rule rule = new RuleVisitorParser().parse("derive value: itemNo as: 'cate_if'");
     DataFrame newDf = null_contained.doDerive((Derive) rule);
     newDf.show();
-    assertEquals(new Long(1), newDf.objGrid.get(0).get("cate_if"));   // 1
-    assertEquals(null,        newDf.objGrid.get(1).get("cate_if"));   // null
+    assertEquals(new Long(1), newDf.rows.get(0).get("cate_if"));   // 1
+    assertEquals(null,        newDf.rows.get(1).get("cate_if"));   // null
   }
 
   @Test
@@ -110,8 +110,8 @@ public class DeriveTest {
     Rule rule = new RuleVisitorParser().parse("derive value: if(itemNo) as: 'cate_if'");
     DataFrame newDf = null_contained.doDerive((Derive) rule);
     newDf.show();
-    assertEquals(true,  newDf.objGrid.get(0).get("cate_if"));   // 1
-    assertEquals(false, newDf.objGrid.get(1).get("cate_if"));   // null
+    assertEquals(true,  newDf.rows.get(0).get("cate_if"));   // 1
+    assertEquals(false, newDf.rows.get(1).get("cate_if"));   // null
   }
 
   @Test
@@ -120,8 +120,8 @@ public class DeriveTest {
     Rule rule = new RuleVisitorParser().parse("derive value: if(isnull(itemNo), '1', '2') as: 'cate_if'");
     DataFrame newDf = null_contained.doDerive((Derive) rule);
     newDf.show();
-    assertEquals("2", newDf.objGrid.get(0).get("cate_if"));   // 1
-    assertEquals("1", newDf.objGrid.get(1).get("cate_if"));   // null
+    assertEquals("2", newDf.rows.get(0).get("cate_if"));   // 1
+    assertEquals("1", newDf.rows.get(1).get("cate_if"));   // null
   }
 
   @Test
@@ -131,8 +131,8 @@ public class DeriveTest {
     DataFrame newDf = null_contained.doDerive((Derive) rule);
     newDf.show();
 
-    assertEquals(new Long(1), newDf.objGrid.get(0).get("cate_if"));   // 1
-    assertEquals(new Long(2), newDf.objGrid.get(1).get("cate_if"));   // null
+    assertEquals(new Long(1), newDf.rows.get(0).get("cate_if"));   // 1
+    assertEquals(new Long(2), newDf.rows.get(1).get("cate_if"));   // null
   }
 
   @Test
@@ -142,8 +142,8 @@ public class DeriveTest {
     DataFrame newDf = null_contained.doDerive((Derive) rule);
     newDf.show();
 
-    assertEquals("1", newDf.objGrid.get(0).get("cate_if"));   // 1
-    assertEquals("2", newDf.objGrid.get(1).get("cate_if"));   // null
+    assertEquals("1", newDf.rows.get(0).get("cate_if"));   // 1
+    assertEquals("2", newDf.rows.get(1).get("cate_if"));   // null
   }
 
   @Test
@@ -153,9 +153,9 @@ public class DeriveTest {
     DataFrame newDf = null_contained.doDerive((Derive) rule);
     newDf.show();
 
-    assertEquals(false, newDf.objGrid.get(0).get("cate_if"));   // 1
-    assertEquals(false, newDf.objGrid.get(1).get("cate_if"));   // null
-    assertEquals(true,  newDf.objGrid.get(2).get("cate_if"));   // 3
+    assertEquals(false, newDf.rows.get(0).get("cate_if"));   // 1
+    assertEquals(false, newDf.rows.get(1).get("cate_if"));   // null
+    assertEquals(true,  newDf.rows.get(2).get("cate_if"));   // 3
   }
 
   @Test
@@ -165,9 +165,9 @@ public class DeriveTest {
     DataFrame newDf = null_contained.doDerive((Derive) rule);
     newDf.show();
 
-    assertEquals(true,  newDf.objGrid.get(0).get("cate_if"));   // Ferrari
-    assertEquals(false, newDf.objGrid.get(1).get("cate_if"));   // Jaguar
-    assertEquals(false, newDf.objGrid.get(5).get("cate_if"));   // null
+    assertEquals(true,  newDf.rows.get(0).get("cate_if"));   // Ferrari
+    assertEquals(false, newDf.rows.get(1).get("cate_if"));   // Jaguar
+    assertEquals(false, newDf.rows.get(5).get("cate_if"));   // null
   }
 
   @Test
@@ -177,9 +177,9 @@ public class DeriveTest {
     DataFrame newDf = null_contained.doDerive((Derive) rule);
     newDf.show();
 
-    assertEquals("1", newDf.objGrid.get(0).get("cate_if"));   // Ferrari
-    assertEquals("0", newDf.objGrid.get(1).get("cate_if"));   // Jaguar
-    assertEquals("0", newDf.objGrid.get(5).get("cate_if"));   // null
+    assertEquals("1", newDf.rows.get(0).get("cate_if"));   // Ferrari
+    assertEquals("0", newDf.rows.get(1).get("cate_if"));   // Jaguar
+    assertEquals("0", newDf.rows.get(5).get("cate_if"));   // null
   }
 
   @Test
@@ -189,9 +189,9 @@ public class DeriveTest {
     DataFrame newDf = null_contained.doDerive((Derive) rule);
     newDf.show();
 
-    assertEquals(new Long(1), newDf.objGrid.get(0).get("cate_if"));   // Ferrari
-    assertEquals(new Long(0), newDf.objGrid.get(1).get("cate_if"));   // Jaguar
-    assertEquals(new Long(0), newDf.objGrid.get(5).get("cate_if"));   // null
+    assertEquals(new Long(1), newDf.rows.get(0).get("cate_if"));   // Ferrari
+    assertEquals(new Long(0), newDf.rows.get(1).get("cate_if"));   // Jaguar
+    assertEquals(new Long(0), newDf.rows.get(5).get("cate_if"));   // null
   }
 
   @Test
@@ -201,9 +201,9 @@ public class DeriveTest {
     DataFrame newDf = null_contained.doDerive((Derive) rule);
     newDf.show();
 
-    assertEquals(new Double(10.0), newDf.objGrid.get(0).get("cate_if"));  // Ferrari
-    assertEquals(new Double(1.0), newDf.objGrid.get(1).get("cate_if"));   // Jaguar
-    assertEquals(new Double(1.0), newDf.objGrid.get(5).get("cate_if"));   // null
+    assertEquals(new Double(10.0), newDf.rows.get(0).get("cate_if"));  // Ferrari
+    assertEquals(new Double(1.0), newDf.rows.get(1).get("cate_if"));   // Jaguar
+    assertEquals(new Double(1.0), newDf.rows.get(5).get("cate_if"));   // null
   }
 
   @Test
@@ -213,9 +213,9 @@ public class DeriveTest {
     DataFrame newDf = null_contained.doDerive((Derive) rule);
     newDf.show();
 
-    assertEquals(new Long(1), newDf.objGrid.get(0).get("cate_if"));   // 1
-    assertEquals(new Long(0), newDf.objGrid.get(1).get("cate_if"));   // null
-    assertEquals(new Long(0), newDf.objGrid.get(4).get("cate_if"));   // 4
+    assertEquals(new Long(1), newDf.rows.get(0).get("cate_if"));   // 1
+    assertEquals(new Long(0), newDf.rows.get(1).get("cate_if"));   // null
+    assertEquals(new Long(0), newDf.rows.get(4).get("cate_if"));   // 4
   }
 
   @Test
@@ -225,9 +225,9 @@ public class DeriveTest {
     DataFrame newDf = null_contained.doDerive((Derive) rule);
     newDf.show();
 
-    assertEquals("light", newDf.objGrid.get(0).get("cate_if"));   // 800
-    assertEquals("light", newDf.objGrid.get(1).get("cate_if"));   // 998
-    assertEquals("heavy", newDf.objGrid.get(2).get("cate_if"));   // 1800
+    assertEquals("light", newDf.rows.get(0).get("cate_if"));   // 800
+    assertEquals("light", newDf.rows.get(1).get("cate_if"));   // 998
+    assertEquals("heavy", newDf.rows.get(2).get("cate_if"));   // 1800
   }
 
   @Test
@@ -237,9 +237,9 @@ public class DeriveTest {
     DataFrame newDf = null_contained.doDerive((Derive) rule);
     newDf.show();
 
-    assertEquals(true,  newDf.objGrid.get(0).get("cate_if"));   // 1
-    assertEquals(false, newDf.objGrid.get(1).get("cate_if"));   // null
-    assertEquals(false, newDf.objGrid.get(2).get("cate_if"));   // 3
+    assertEquals(true,  newDf.rows.get(0).get("cate_if"));   // 1
+    assertEquals(false, newDf.rows.get(1).get("cate_if"));   // null
+    assertEquals(false, newDf.rows.get(2).get("cate_if"));   // 3
   }
 
   @Test
@@ -249,9 +249,9 @@ public class DeriveTest {
     DataFrame newDf = null_contained.doDerive((Derive) rule);
     newDf.show();
 
-    assertEquals(false, newDf.objGrid.get(0).get("cate_if"));   // 259
-    assertEquals(true,  newDf.objGrid.get(2).get("cate_if"));   // 340
-    assertEquals(false, newDf.objGrid.get(5).get("cate_if"));   // null
+    assertEquals(false, newDf.rows.get(0).get("cate_if"));   // 259
+    assertEquals(true,  newDf.rows.get(2).get("cate_if"));   // 340
+    assertEquals(false, newDf.rows.get(5).get("cate_if"));   // null
   }
 
   @Test
@@ -261,10 +261,10 @@ public class DeriveTest {
     DataFrame newDf = null_contained.doDerive((Derive) rule);
     newDf.show();
 
-    assertEquals(true,  newDf.objGrid.get(0).get("cate_if"));   // 259, 800
-    assertEquals(true,  newDf.objGrid.get(1).get("cate_if"));   // 274, 998
-    assertEquals(true,  newDf.objGrid.get(2).get("cate_if"));   // 340, 1800
-    assertEquals(false, newDf.objGrid.get(5).get("cate_if"));   // null, 1490
+    assertEquals(true,  newDf.rows.get(0).get("cate_if"));   // 259, 800
+    assertEquals(true,  newDf.rows.get(1).get("cate_if"));   // 274, 998
+    assertEquals(true,  newDf.rows.get(2).get("cate_if"));   // 340, 1800
+    assertEquals(false, newDf.rows.get(5).get("cate_if"));   // null, 1490
   }
 
   @Test
@@ -274,10 +274,10 @@ public class DeriveTest {
     DataFrame newDf = null_contained.doDerive((Derive) rule);
     newDf.show();
 
-    assertEquals(false, newDf.objGrid.get(0).get("cate_if"));   // 259, 800
-    assertEquals(false, newDf.objGrid.get(1).get("cate_if"));   // 274, 998
-    assertEquals(true,  newDf.objGrid.get(3).get("cate_if"));   // 355, 1490
-    assertEquals(false, newDf.objGrid.get(5).get("cate_if"));   // null, 1490
+    assertEquals(false, newDf.rows.get(0).get("cate_if"));   // 259, 800
+    assertEquals(false, newDf.rows.get(1).get("cate_if"));   // 274, 998
+    assertEquals(true,  newDf.rows.get(3).get("cate_if"));   // 355, 1490
+    assertEquals(false, newDf.rows.get(5).get("cate_if"));   // null, 1490
   }
 
   @Test
@@ -287,10 +287,10 @@ public class DeriveTest {
     DataFrame newDf = null_contained.doDerive((Derive) rule);
     newDf.show();
 
-    assertEquals("bad",  newDf.objGrid.get(0).get("cate_if"));   // 259, 800
-    assertEquals("bad",  newDf.objGrid.get(1).get("cate_if"));   // 274, 998
-    assertEquals("good", newDf.objGrid.get(3).get("cate_if"));   // 355, 1490
-    assertEquals("bad",  newDf.objGrid.get(5).get("cate_if"));   // null, 1490
+    assertEquals("bad",  newDf.rows.get(0).get("cate_if"));   // 259, 800
+    assertEquals("bad",  newDf.rows.get(1).get("cate_if"));   // 274, 998
+    assertEquals("good", newDf.rows.get(3).get("cate_if"));   // 355, 1490
+    assertEquals("bad",  newDf.rows.get(5).get("cate_if"));   // null, 1490
   }
 
   @Test
@@ -300,10 +300,10 @@ public class DeriveTest {
     DataFrame newDf = null_contained.doDerive((Derive) rule);
     newDf.show();
 
-    assertEquals(new Long(0), newDf.objGrid.get(0).get("cate_if"));   // 259, 800
-    assertEquals(new Long(0), newDf.objGrid.get(1).get("cate_if"));   // 274, 998
-    assertEquals(new Long(1), newDf.objGrid.get(3).get("cate_if"));   // 355, 1490
-    assertEquals(new Long(0), newDf.objGrid.get(5).get("cate_if"));   // null, 1490
+    assertEquals(new Long(0), newDf.rows.get(0).get("cate_if"));   // 259, 800
+    assertEquals(new Long(0), newDf.rows.get(1).get("cate_if"));   // 274, 998
+    assertEquals(new Long(1), newDf.rows.get(3).get("cate_if"));   // 355, 1490
+    assertEquals(new Long(0), newDf.rows.get(5).get("cate_if"));   // null, 1490
   }
 
   @Test
@@ -313,10 +313,10 @@ public class DeriveTest {
     DataFrame newDf = null_contained.doDerive((Derive) rule);
     newDf.show();
 
-    assertEquals(1.0, newDf.objGrid.get(0).get("cate_if"));   // 259, 800
-    assertEquals(1.0, newDf.objGrid.get(1).get("cate_if"));   // 274, 998
-    assertEquals(10.0, newDf.objGrid.get(3).get("cate_if"));  // 355, 1490
-    assertEquals(1.0, newDf.objGrid.get(5).get("cate_if"));   // null, 1490
+    assertEquals(1.0, newDf.rows.get(0).get("cate_if"));   // 259, 800
+    assertEquals(1.0, newDf.rows.get(1).get("cate_if"));   // 274, 998
+    assertEquals(10.0, newDf.rows.get(3).get("cate_if"));  // 355, 1490
+    assertEquals(1.0, newDf.rows.get(5).get("cate_if"));   // null, 1490
   }
 
 //  @Test
@@ -326,7 +326,7 @@ public class DeriveTest {
 //    DataFrame newDf = null_contained.doDerive((Derive) rule);
 //    newDf.show();
 //
-//    assertEquals("FERRARI", newDf.objGrid.get(0).get("cate_if"));
+//    assertEquals("FERRARI", newDf.rows.get(0).get("cate_if"));
 //  }
 
   @Test
@@ -336,8 +336,8 @@ public class DeriveTest {
     DataFrame newDf = null_contained.doDerive((Derive) rule);
     newDf.show();
 
-    assertEquals(false, newDf.objGrid.get(0).get("cate_if"));   // Ferrari
-    assertEquals(true,  newDf.objGrid.get(5).get("cate_if"));   // null
+    assertEquals(false, newDf.rows.get(0).get("cate_if"));   // Ferrari
+    assertEquals(true,  newDf.rows.get(5).get("cate_if"));   // null
   }
 
     @Test
@@ -347,8 +347,8 @@ public class DeriveTest {
       DataFrame newDf = null_contained.doDerive((Derive) rule);
       newDf.show();
 
-      assertEquals(new Long(7), newDf.objGrid.get(0).get("cate_if"));   // Ferrari
-      assertEquals(null,        newDf.objGrid.get(5).get("cate_if"));   // null
+      assertEquals(new Long(7), newDf.rows.get(0).get("cate_if"));   // Ferrari
+      assertEquals(null,        newDf.rows.get(5).get("cate_if"));   // null
       // consequently, if the argument is null, the result of a function is also null.
     }
 
@@ -359,8 +359,8 @@ public class DeriveTest {
     DataFrame newDf = null_contained.doDerive((Derive) rule);
     newDf.show();
 
-    assertEquals(true,  newDf.objGrid.get(0).get("cate_if"));   // Ferrari
-    assertEquals(false, newDf.objGrid.get(5).get("cate_if"));   // null
+    assertEquals(true,  newDf.rows.get(0).get("cate_if"));   // Ferrari
+    assertEquals(false, newDf.rows.get(5).get("cate_if"));   // null
     // the conditional result of null is the false.
   }
 
@@ -371,9 +371,9 @@ public class DeriveTest {
     DataFrame newDf = null_contained.doDerive((Derive) rule);
     newDf.show();
 
-    assertEquals("1", newDf.objGrid.get(0).get("cate_if"));  // Ferrari
-    assertEquals("0", newDf.objGrid.get(3).get("cate_if"));  // Audi
-    assertEquals("0", newDf.objGrid.get(5).get("cate_if"));  // null
+    assertEquals("1", newDf.rows.get(0).get("cate_if"));  // Ferrari
+    assertEquals("0", newDf.rows.get(3).get("cate_if"));  // Audi
+    assertEquals("0", newDf.rows.get(5).get("cate_if"));  // null
     // the conditional result of null is the false.
   }
 
@@ -384,9 +384,9 @@ public class DeriveTest {
     DataFrame newDf = null_contained.doDerive((Derive) rule);
     newDf.show();
 
-    assertEquals(new Long(0), newDf.objGrid.get(0).get("cate_if"));  // Ferrari
-    assertEquals(new Long(1), newDf.objGrid.get(3).get("cate_if"));  // Audi
-    assertEquals(new Long(0), newDf.objGrid.get(5).get("cate_if"));  // null
+    assertEquals(new Long(0), newDf.rows.get(0).get("cate_if"));  // Ferrari
+    assertEquals(new Long(1), newDf.rows.get(3).get("cate_if"));  // Audi
+    assertEquals(new Long(0), newDf.rows.get(5).get("cate_if"));  // null
     // the conditional result of null is the false.
   }
 
@@ -397,9 +397,9 @@ public class DeriveTest {
     DataFrame newDf = null_contained.doDerive((Derive) rule);
     newDf.show();
 
-    assertEquals(1.0, newDf.objGrid.get(0).get("cate_if"));   // Ferrari
-    assertEquals(10.0, newDf.objGrid.get(3).get("cate_if"));  // Audi
-    assertEquals(1.0, newDf.objGrid.get(5).get("cate_if"));   // null
+    assertEquals(1.0, newDf.rows.get(0).get("cate_if"));   // Ferrari
+    assertEquals(10.0, newDf.rows.get(3).get("cate_if"));  // Audi
+    assertEquals(1.0, newDf.rows.get(5).get("cate_if"));   // null
     // the conditional result of null is the false.
   }
 
@@ -410,9 +410,9 @@ public class DeriveTest {
     DataFrame newDf = null_contained.doDerive((Derive) rule);
     newDf.show();
 
-    assertEquals("others", newDf.objGrid.get(0).get("cate_if"));  // Ferrari
-    assertEquals("4c",     newDf.objGrid.get(3).get("cate_if"));  // Audi
-    assertEquals("others", newDf.objGrid.get(5).get("cate_if"));  // null
+    assertEquals("others", newDf.rows.get(0).get("cate_if"));  // Ferrari
+    assertEquals("4c",     newDf.rows.get(3).get("cate_if"));  // Audi
+    assertEquals("others", newDf.rows.get(5).get("cate_if"));  // null
     // the conditional result of null is the false.
   }
 
@@ -423,7 +423,7 @@ public class DeriveTest {
     DataFrame newDf = null_contained.doDerive((Derive) rule);
     newDf.show();
 
-    assertEquals(new Long(900), newDf.objGrid.get(0).get("cate_if"));  // 800
+    assertEquals(new Long(900), newDf.rows.get(0).get("cate_if"));  // 800
   }
 
   @Test
@@ -433,7 +433,7 @@ public class DeriveTest {
     DataFrame newDf = null_contained.doDerive((Derive) rule);
     newDf.show();
 
-    assertEquals(900.78, newDf.objGrid.get(0).get("cate_if"));  // 800
+    assertEquals(900.78, newDf.rows.get(0).get("cate_if"));  // 800
   }
 
   @Test
@@ -443,7 +443,7 @@ public class DeriveTest {
     DataFrame newDf = null_contained.doDerive((Derive) rule);
     newDf.show();
 
-    assertEquals(new Long(700), newDf.objGrid.get(0).get("cate_if"));  // 800
+    assertEquals(new Long(700), newDf.rows.get(0).get("cate_if"));  // 800
   }
 
   @Test
@@ -453,7 +453,7 @@ public class DeriveTest {
     DataFrame newDf = null_contained.doDerive((Derive) rule);
     newDf.show();
 
-    assertEquals(new Long(80000), newDf.objGrid.get(0).get("cate_if"));  // 800
+    assertEquals(new Long(80000), newDf.rows.get(0).get("cate_if"));  // 800
   }
 
   @Test
@@ -463,7 +463,7 @@ public class DeriveTest {
     DataFrame newDf = null_contained.doDerive((Derive) rule);
     newDf.show();
 
-    assertEquals(8.0, newDf.objGrid.get(0).get("cate_if"));  // 800
+    assertEquals(8.0, newDf.rows.get(0).get("cate_if"));  // 800
   }
 
   @Test
@@ -473,7 +473,7 @@ public class DeriveTest {
     DataFrame newDf = null_contained.doDerive((Derive) rule);
     newDf.show();
 
-    assertEquals(new Long(1059), newDf.objGrid.get(0).get("cate_if"));  // 259, 800
+    assertEquals(new Long(1059), newDf.rows.get(0).get("cate_if"));  // 259, 800
   }
 
   @Test
@@ -483,7 +483,7 @@ public class DeriveTest {
     DataFrame newDf = null_contained.doDerive((Derive) rule);
     newDf.show();
 
-    assertEquals(new Long(1060), newDf.objGrid.get(0).get("cate_if"));  // 259, 800, 1
+    assertEquals(new Long(1060), newDf.rows.get(0).get("cate_if"));  // 259, 800, 1
   }
 
   @Test
@@ -493,7 +493,7 @@ public class DeriveTest {
     DataFrame newDf = null_contained.doDerive((Derive) rule);
     newDf.show();
 
-    assertEquals(new Long(-442), newDf.objGrid.get(0).get("cate_if"));  // 259, 800
+    assertEquals(new Long(-442), newDf.rows.get(0).get("cate_if"));  // 259, 800
   }
 
   @Test
@@ -503,7 +503,7 @@ public class DeriveTest {
     DataFrame newDf = null_contained.doDerive((Derive) rule);
     newDf.show();
 
-    assertEquals(new Long(367), newDf.objGrid.get(0).get("cate_if"));  // Ferrari, 259, 1
+    assertEquals(new Long(367), newDf.rows.get(0).get("cate_if"));  // Ferrari, 259, 1
   }
 
 //  @Test
@@ -513,7 +513,7 @@ public class DeriveTest {
 //    DataFrame newDf = null_contained.doDerive((Derive) rule);
 //    newDf.show();
 //
-//    assertEquals("44.377", newDf.objGrid.get(0).get("cate_if").toString().substring(0, 6));  // 259, 800
+//    assertEquals("44.377", newDf.rows.get(0).get("cate_if").toString().substring(0, 6));  // 259, 800
 //  }
 
   @Test
@@ -523,7 +523,7 @@ public class DeriveTest {
     DataFrame newDf = null_contained.doDerive((Derive) rule);
     newDf.show();
 
-    assertEquals(new Long(805), newDf.objGrid.get(0).get("cate_if"));  // 800
+    assertEquals(new Long(805), newDf.rows.get(0).get("cate_if"));  // 800
   }
 
 //    @Test
@@ -543,7 +543,7 @@ public class DeriveTest {
     DataFrame newDf = null_contained.doDerive((Derive) rule);
     newDf.show();
 
-    assertEquals(new Long(1), newDf.objGrid.get(0).get("cate_if"));  // 800
+    assertEquals(new Long(1), newDf.rows.get(0).get("cate_if"));  // 800
   }
 
 //    @Test
@@ -585,8 +585,8 @@ public class DeriveTest {
     DataFrame newDf = null_contained.doDerive((Derive) rule);
     newDf.show();
 
-    assertEquals(true,  newDf.objGrid.get(0).get("cate_if"));  // 800
-    assertEquals(false, newDf.objGrid.get(5).get("cate_if"));  // null
+    assertEquals(true,  newDf.rows.get(0).get("cate_if"));  // 800
+    assertEquals(false, newDf.rows.get(5).get("cate_if"));  // null
   }
 
   @Test
@@ -596,8 +596,8 @@ public class DeriveTest {
     DataFrame newDf = null_contained.doDerive((Derive) rule);
     newDf.show();
 
-    assertEquals(false, newDf.objGrid.get(0).get("cate_if"));  // 800
-    assertEquals(false, newDf.objGrid.get(5).get("cate_if"));  // null
+    assertEquals(false, newDf.rows.get(0).get("cate_if"));  // 800
+    assertEquals(false, newDf.rows.get(5).get("cate_if"));  // null
   }
 
   @Test
@@ -607,8 +607,8 @@ public class DeriveTest {
     DataFrame newDf = null_contained.doDerive((Derive) rule);
     newDf.show();
 
-    assertEquals(false, newDf.objGrid.get(0).get("cate_if"));  // 800
-    assertEquals(true,  newDf.objGrid.get(5).get("cate_if"));  // null
+    assertEquals(false, newDf.rows.get(0).get("cate_if"));  // 800
+    assertEquals(true,  newDf.rows.get(5).get("cate_if"));  // null
   }
 //
 //    @Test
@@ -655,8 +655,8 @@ public class DeriveTest {
     DataFrame newDf = null_contained.doDerive((Derive) rule);
     newDf.show();
 
-    assertEquals(new Long(1), newDf.objGrid.get(0).get("name_1"));  // Ferrari, 1, 259
-    assertEquals(null,        newDf.objGrid.get(5).get("name_1"));  // null, 6, null
+    assertEquals(new Long(1), newDf.rows.get(0).get("name_1"));  // Ferrari, 1, 259
+    assertEquals(null,        newDf.rows.get(5).get("name_1"));  // null, 6, null
   }
 
   @Test
@@ -666,8 +666,8 @@ public class DeriveTest {
     DataFrame newDf = null_contained.doDerive((Derive) rule);
     newDf.show();
 
-    assertEquals("No",  newDf.objGrid.get(0).get("name_1"));  // 259
-    assertEquals("Yes", newDf.objGrid.get(4).get("name_1"));  // 355
-    assertEquals("No",  newDf.objGrid.get(5).get("name_1"));  // null
+    assertEquals("No",  newDf.rows.get(0).get("name_1"));  // 259
+    assertEquals("Yes", newDf.rows.get(4).get("name_1"));  // 355
+    assertEquals("No",  newDf.rows.get(5).get("name_1"));  // null
   }
 }

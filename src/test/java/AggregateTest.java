@@ -92,7 +92,7 @@ public class AggregateTest {
         newDf = newDf.doSort((Sort) rule);
         newDf.show();
 
-        assertEquals(new Long(36), newDf.objGrid.get(0).get("sum_measure"));
+        assertEquals(new Long(36), newDf.rows.get(0).get("sum_measure"));
     }
 
     @Test
@@ -112,7 +112,7 @@ public class AggregateTest {
         newDf = newDf.doSort((Sort) rule);
         newDf.show();
 
-        assertEquals(new Long(30), newDf.objGrid.get(0).get("sum_measure"));
+        assertEquals(new Long(30), newDf.rows.get(0).get("sum_measure"));
     }
 
     @Test
@@ -127,6 +127,6 @@ public class AggregateTest {
         DataFrame newDf = multi.doAggregate((Aggregate) rule);
         newDf.show();
 
-        assertEquals(new Long(205), newDf.objGrid.get(0).get("sum_measure"));
+        assertEquals(new Long(205), newDf.rows.get(0).get("sum_measure"));
     }
 }

@@ -89,8 +89,8 @@ public class SetTest {
     DataFrame newDf = null_contained.doSet((Set) rule);
     newDf.show();
 
-    assertEquals("a", newDf.objGrid.get(0).get("name"));   // 1
-    assertEquals("b", newDf.objGrid.get(1).get("name"));   // null
+    assertEquals("a", newDf.rows.get(0).get("name"));   // 1
+    assertEquals("b", newDf.rows.get(1).get("name"));   // null
   }
 
   @Test
@@ -100,8 +100,8 @@ public class SetTest {
     DataFrame newDf = null_contained.doSet((Set) rule);
     newDf.show();
 
-    assertEquals(true,  newDf.objGrid.get(0).get("itemNo"));   // 1
-    assertEquals(false, newDf.objGrid.get(1).get("itemNo"));   // null
+    assertEquals(true,  newDf.rows.get(0).get("itemNo"));   // 1
+    assertEquals(false, newDf.rows.get(1).get("itemNo"));   // null
   }
 
   @Test
@@ -111,8 +111,8 @@ public class SetTest {
     DataFrame newDf = null_contained.doSet((Set) rule);
     newDf.show();
 
-    assertEquals("1", newDf.objGrid.get(0).get("itemNo"));   // 1
-    assertEquals("2", newDf.objGrid.get(1).get("itemNo"));   // null
+    assertEquals("1", newDf.rows.get(0).get("itemNo"));   // 1
+    assertEquals("2", newDf.rows.get(1).get("itemNo"));   // null
   }
 
   @Test
@@ -122,8 +122,8 @@ public class SetTest {
     DataFrame newDf = null_contained.doSet((Set) rule);
     newDf.show();
 
-    assertEquals(new Long(1), newDf.objGrid.get(0).get("itemNo"));   // 1
-    assertEquals(new Long(2), newDf.objGrid.get(1).get("itemNo"));   // null
+    assertEquals(new Long(1), newDf.rows.get(0).get("itemNo"));   // 1
+    assertEquals(new Long(2), newDf.rows.get(1).get("itemNo"));   // null
   }
 
   @Test
@@ -133,8 +133,8 @@ public class SetTest {
     DataFrame newDf = null_contained.doSet((Set) rule);
     newDf.show();
 
-    assertEquals(1.0, newDf.objGrid.get(0).get("itemNo"));   // 1
-    assertEquals(2.0, newDf.objGrid.get(1).get("itemNo"));   // null
+    assertEquals(1.0, newDf.rows.get(0).get("itemNo"));   // 1
+    assertEquals(2.0, newDf.rows.get(1).get("itemNo"));   // null
   }
 
   @Test
@@ -144,9 +144,9 @@ public class SetTest {
     DataFrame newDf = null_contained.doSet((Set) rule);
     newDf.show();
 
-    assertEquals(false, newDf.objGrid.get(0).get("itemNo"));   // 1
-    assertEquals(false, newDf.objGrid.get(1).get("itemNo"));   // null
-    assertEquals(true,  newDf.objGrid.get(4).get("itemNo"));   // 5
+    assertEquals(false, newDf.rows.get(0).get("itemNo"));   // 1
+    assertEquals(false, newDf.rows.get(1).get("itemNo"));   // null
+    assertEquals(true,  newDf.rows.get(4).get("itemNo"));   // 5
   }
 
   @Test
@@ -156,9 +156,9 @@ public class SetTest {
     DataFrame newDf = null_contained.doSet((Set) rule);
     newDf.show();
 
-    assertEquals(true,  newDf.objGrid.get(0).get("name"));   // Ferrari
-    assertEquals(false, newDf.objGrid.get(1).get("name"));   // Jaguar
-    assertEquals(false, newDf.objGrid.get(5).get("name"));   // null
+    assertEquals(true,  newDf.rows.get(0).get("name"));   // Ferrari
+    assertEquals(false, newDf.rows.get(1).get("name"));   // Jaguar
+    assertEquals(false, newDf.rows.get(5).get("name"));   // null
   }
 
   @Test
@@ -168,9 +168,9 @@ public class SetTest {
     DataFrame newDf = null_contained.doSet((Set) rule);
     newDf.show();
 
-    assertEquals("1", newDf.objGrid.get(0).get("name"));   // Ferrari
-    assertEquals("0", newDf.objGrid.get(1).get("name"));   // Jaguar
-    assertEquals("0", newDf.objGrid.get(5).get("name"));   // null
+    assertEquals("1", newDf.rows.get(0).get("name"));   // Ferrari
+    assertEquals("0", newDf.rows.get(1).get("name"));   // Jaguar
+    assertEquals("0", newDf.rows.get(5).get("name"));   // null
   }
 
   @Test
@@ -180,9 +180,9 @@ public class SetTest {
     DataFrame newDf = null_contained.doSet((Set) rule);
     newDf.show();
 
-    assertEquals(new Long(1), newDf.objGrid.get(0).get("name"));   // Ferrari
-    assertEquals(new Long(0), newDf.objGrid.get(1).get("name"));   // Jaguar
-    assertEquals(new Long(0), newDf.objGrid.get(5).get("name"));   // null
+    assertEquals(new Long(1), newDf.rows.get(0).get("name"));   // Ferrari
+    assertEquals(new Long(0), newDf.rows.get(1).get("name"));   // Jaguar
+    assertEquals(new Long(0), newDf.rows.get(5).get("name"));   // null
   }
 
   @Test
@@ -192,9 +192,9 @@ public class SetTest {
     DataFrame newDf = null_contained.doSet((Set) rule);
     newDf.show();
 
-    assertEquals(10.0, newDf.objGrid.get(0).get("name"));   // Ferrari
-    assertEquals(1.0,  newDf.objGrid.get(1).get("name"));   // Jaguar
-    assertEquals(1.0,  newDf.objGrid.get(5).get("name"));   // null
+    assertEquals(10.0, newDf.rows.get(0).get("name"));   // Ferrari
+    assertEquals(1.0,  newDf.rows.get(1).get("name"));   // Jaguar
+    assertEquals(1.0,  newDf.rows.get(5).get("name"));   // null
   }
 
   @Test
@@ -204,9 +204,9 @@ public class SetTest {
     DataFrame newDf = null_contained.doSet((Set) rule);
     newDf.show();
 
-    assertEquals(new Long(1), newDf.objGrid.get(0).get("itemNo"));   // Ferrari
-    assertEquals(new Long(0), newDf.objGrid.get(4).get("itemNo"));   // Lamborghini
-    assertEquals(new Long(0), newDf.objGrid.get(5).get("itemNo"));   // null
+    assertEquals(new Long(1), newDf.rows.get(0).get("itemNo"));   // Ferrari
+    assertEquals(new Long(0), newDf.rows.get(4).get("itemNo"));   // Lamborghini
+    assertEquals(new Long(0), newDf.rows.get(5).get("itemNo"));   // null
   }
 
   @Test
@@ -216,8 +216,8 @@ public class SetTest {
     DataFrame newDf = null_contained.doSet((Set) rule);
     newDf.show();
 
-    assertEquals("light", newDf.objGrid.get(0).get("weight"));   // 800
-    assertEquals("heavy", newDf.objGrid.get(2).get("weight"));   // 1800
+    assertEquals("light", newDf.rows.get(0).get("weight"));   // 800
+    assertEquals("heavy", newDf.rows.get(2).get("weight"));   // 1800
   }
 
   // original dataset
@@ -239,9 +239,9 @@ public class SetTest {
     DataFrame newDf = null_contained.doSet((Set) rule);
     newDf.show();
 
-    assertEquals(true,  newDf.objGrid.get(0).get("itemNo"));   // 1
-    assertEquals(false, newDf.objGrid.get(3).get("itemNo"));   // 4
-    assertEquals(false, newDf.objGrid.get(5).get("itemNo"));   // null
+    assertEquals(true,  newDf.rows.get(0).get("itemNo"));   // 1
+    assertEquals(false, newDf.rows.get(3).get("itemNo"));   // 4
+    assertEquals(false, newDf.rows.get(5).get("itemNo"));   // null
   }
 
   @Test
@@ -251,9 +251,9 @@ public class SetTest {
     DataFrame newDf = null_contained.doSet((Set) rule);
     newDf.show();
 
-    assertEquals(false, newDf.objGrid.get(0).get("speed"));   // 259
-    assertEquals(true,  newDf.objGrid.get(2).get("speed"));   // 340
-    assertEquals(false, newDf.objGrid.get(5).get("speed"));   // null
+    assertEquals(false, newDf.rows.get(0).get("speed"));   // 259
+    assertEquals(true,  newDf.rows.get(2).get("speed"));   // 340
+    assertEquals(false, newDf.rows.get(5).get("speed"));   // null
   }
 
   @Test
@@ -263,10 +263,10 @@ public class SetTest {
     DataFrame newDf = null_contained.doSet((Set) rule);
     newDf.show();
 
-    assertEquals(true,  newDf.objGrid.get(0).get("speed"));   // 259, 800
-    assertEquals(true,  newDf.objGrid.get(1).get("speed"));   // 274, 998
-    assertEquals(true,  newDf.objGrid.get(2).get("speed"));   // 340, 1800
-    assertEquals(false, newDf.objGrid.get(5).get("speed"));   // null, 1490
+    assertEquals(true,  newDf.rows.get(0).get("speed"));   // 259, 800
+    assertEquals(true,  newDf.rows.get(1).get("speed"));   // 274, 998
+    assertEquals(true,  newDf.rows.get(2).get("speed"));   // 340, 1800
+    assertEquals(false, newDf.rows.get(5).get("speed"));   // null, 1490
   }
 
   @Test
@@ -276,10 +276,10 @@ public class SetTest {
     DataFrame newDf = null_contained.doSet((Set) rule);
     newDf.show();
 
-    assertEquals(false, newDf.objGrid.get(0).get("speed"));   // 259, 800
-    assertEquals(false, newDf.objGrid.get(1).get("speed"));   // 274, 998
-    assertEquals(true,  newDf.objGrid.get(3).get("speed"));   // 355, 1490
-    assertEquals(false, newDf.objGrid.get(5).get("speed"));   // null, 1490
+    assertEquals(false, newDf.rows.get(0).get("speed"));   // 259, 800
+    assertEquals(false, newDf.rows.get(1).get("speed"));   // 274, 998
+    assertEquals(true,  newDf.rows.get(3).get("speed"));   // 355, 1490
+    assertEquals(false, newDf.rows.get(5).get("speed"));   // null, 1490
   }
 
   @Test
@@ -289,10 +289,10 @@ public class SetTest {
     DataFrame newDf = null_contained.doSet((Set) rule);
     newDf.show();
 
-    assertEquals("bad",  newDf.objGrid.get(0).get("speed"));   // 259, 800
-    assertEquals("bad",  newDf.objGrid.get(1).get("speed"));   // 274, 998
-    assertEquals("good", newDf.objGrid.get(3).get("speed"));   // 355, 1490
-    assertEquals("bad",  newDf.objGrid.get(5).get("speed"));   // null, 1490
+    assertEquals("bad",  newDf.rows.get(0).get("speed"));   // 259, 800
+    assertEquals("bad",  newDf.rows.get(1).get("speed"));   // 274, 998
+    assertEquals("good", newDf.rows.get(3).get("speed"));   // 355, 1490
+    assertEquals("bad",  newDf.rows.get(5).get("speed"));   // null, 1490
   }
 
   @Test
@@ -302,10 +302,10 @@ public class SetTest {
     DataFrame newDf = null_contained.doSet((Set) rule);
     newDf.show();
 
-    assertEquals(new Long(0),  newDf.objGrid.get(0).get("speed"));   // 259, 800
-    assertEquals(new Long(0),  newDf.objGrid.get(1).get("speed"));   // 274, 998
-    assertEquals(new Long(1), newDf.objGrid.get(3).get("speed"));    // 355, 1490
-    assertEquals(new Long(0),  newDf.objGrid.get(5).get("speed"));   // null, 1490
+    assertEquals(new Long(0),  newDf.rows.get(0).get("speed"));   // 259, 800
+    assertEquals(new Long(0),  newDf.rows.get(1).get("speed"));   // 274, 998
+    assertEquals(new Long(1), newDf.rows.get(3).get("speed"));    // 355, 1490
+    assertEquals(new Long(0),  newDf.rows.get(5).get("speed"));   // null, 1490
   }
 
   @Test
@@ -315,10 +315,10 @@ public class SetTest {
     DataFrame newDf = null_contained.doSet((Set) rule);
     newDf.show();
 
-    assertEquals(1.0,  newDf.objGrid.get(0).get("speed"));   // 259, 800
-    assertEquals(1.0,  newDf.objGrid.get(1).get("speed"));   // 274, 998
-    assertEquals(10.0, newDf.objGrid.get(3).get("speed"));   // 355, 1490
-    assertEquals(1.0,  newDf.objGrid.get(5).get("speed"));   // null, 1490
+    assertEquals(1.0,  newDf.rows.get(0).get("speed"));   // 259, 800
+    assertEquals(1.0,  newDf.rows.get(1).get("speed"));   // 274, 998
+    assertEquals(10.0, newDf.rows.get(3).get("speed"));   // 355, 1490
+    assertEquals(1.0,  newDf.rows.get(5).get("speed"));   // null, 1490
   }
 
   @Test
@@ -328,7 +328,7 @@ public class SetTest {
     DataFrame newDf = null_contained.doSet((Set) rule);
     newDf.show();
 
-    assertEquals("FERRARI", newDf.objGrid.get(0).get("name"));
+    assertEquals("FERRARI", newDf.rows.get(0).get("name"));
   }
 
   @Test
@@ -338,8 +338,8 @@ public class SetTest {
     DataFrame newDf = null_contained.doSet((Set) rule);
     newDf.show();
 
-    assertEquals(false, newDf.objGrid.get(0).get("name"));   // Ferrari
-    assertEquals(true,  newDf.objGrid.get(5).get("name"));   // null
+    assertEquals(false, newDf.rows.get(0).get("name"));   // Ferrari
+    assertEquals(true,  newDf.rows.get(5).get("name"));   // null
   }
 
   @Test
@@ -349,8 +349,8 @@ public class SetTest {
     DataFrame newDf = null_contained.doSet((Set) rule);
     newDf.show();
 
-    assertEquals(new Long(7), newDf.objGrid.get(0).get("name"));   // Ferrari
-    assertEquals(null,        newDf.objGrid.get(5).get("name"));   // null
+    assertEquals(new Long(7), newDf.rows.get(0).get("name"));   // Ferrari
+    assertEquals(null,        newDf.rows.get(5).get("name"));   // null
   }
 
   @Test
@@ -360,8 +360,8 @@ public class SetTest {
     DataFrame newDf = null_contained.doSet((Set) rule);
     newDf.show();
 
-    assertEquals(true,  newDf.objGrid.get(0).get("name"));   // Ferrari
-    assertEquals(false, newDf.objGrid.get(5).get("name"));   // null
+    assertEquals(true,  newDf.rows.get(0).get("name"));   // Ferrari
+    assertEquals(false, newDf.rows.get(5).get("name"));   // null
   }
 
   @Test
@@ -371,9 +371,9 @@ public class SetTest {
     DataFrame newDf = null_contained.doSet((Set) rule);
     newDf.show();
 
-    assertEquals("1", newDf.objGrid.get(0).get("name"));  // Ferrari
-    assertEquals("0", newDf.objGrid.get(3).get("name"));  // Audi
-    assertEquals("0", newDf.objGrid.get(5).get("name"));  // null
+    assertEquals("1", newDf.rows.get(0).get("name"));  // Ferrari
+    assertEquals("0", newDf.rows.get(3).get("name"));  // Audi
+    assertEquals("0", newDf.rows.get(5).get("name"));  // null
     // the conditional result of null is the false.
   }
 
@@ -384,9 +384,9 @@ public class SetTest {
     DataFrame newDf = null_contained.doSet((Set) rule);
     newDf.show();
 
-    assertEquals(new Long(0), newDf.objGrid.get(0).get("name"));  // Ferrari
-    assertEquals(new Long(1), newDf.objGrid.get(3).get("name"));  // Audi
-    assertEquals(new Long(0), newDf.objGrid.get(5).get("name"));  // null
+    assertEquals(new Long(0), newDf.rows.get(0).get("name"));  // Ferrari
+    assertEquals(new Long(1), newDf.rows.get(3).get("name"));  // Audi
+    assertEquals(new Long(0), newDf.rows.get(5).get("name"));  // null
     // the conditional result of null is the false.
   }
 
@@ -397,9 +397,9 @@ public class SetTest {
     DataFrame newDf = null_contained.doSet((Set) rule);
     newDf.show();
 
-    assertEquals(1.0,  newDf.objGrid.get(0).get("name"));  // Ferrari
-    assertEquals(10.0, newDf.objGrid.get(3).get("name"));  // Audi
-    assertEquals(1.0,  newDf.objGrid.get(5).get("name"));  // null
+    assertEquals(1.0,  newDf.rows.get(0).get("name"));  // Ferrari
+    assertEquals(10.0, newDf.rows.get(3).get("name"));  // Audi
+    assertEquals(1.0,  newDf.rows.get(5).get("name"));  // null
     // the conditional result of null is the false.
   }
 
@@ -410,9 +410,9 @@ public class SetTest {
     DataFrame newDf = null_contained.doSet((Set) rule);
     newDf.show();
 
-    assertEquals("others", newDf.objGrid.get(0).get("name"));  // Ferrari
-    assertEquals("4c",     newDf.objGrid.get(3).get("name"));  // Audi
-    assertEquals("others", newDf.objGrid.get(5).get("name"));  // null
+    assertEquals("others", newDf.rows.get(0).get("name"));  // Ferrari
+    assertEquals("4c",     newDf.rows.get(3).get("name"));  // Audi
+    assertEquals("others", newDf.rows.get(5).get("name"));  // null
     // the conditional result of null is the false.
   }
 
@@ -423,7 +423,7 @@ public class SetTest {
     DataFrame newDf = null_contained.doSet((Set) rule);
     newDf.show();
 
-    assertEquals(new Long(900), newDf.objGrid.get(0).get("weight"));  // 800
+    assertEquals(new Long(900), newDf.rows.get(0).get("weight"));  // 800
   }
 
   @Test
@@ -433,7 +433,7 @@ public class SetTest {
     DataFrame newDf = null_contained.doSet((Set) rule);
     newDf.show();
 
-    assertEquals(900.78, newDf.objGrid.get(0).get("weight"));  // 800
+    assertEquals(900.78, newDf.rows.get(0).get("weight"));  // 800
   }
 
   @Test
@@ -443,7 +443,7 @@ public class SetTest {
     DataFrame newDf = null_contained.doSet((Set) rule);
     newDf.show();
 
-    assertEquals(new Long(700), newDf.objGrid.get(0).get("weight"));  // 800
+    assertEquals(new Long(700), newDf.rows.get(0).get("weight"));  // 800
   }
 
   @Test
@@ -453,7 +453,7 @@ public class SetTest {
     DataFrame newDf = null_contained.doSet((Set) rule);
     newDf.show();
 
-    assertEquals(new Long(80000), newDf.objGrid.get(0).get("weight"));  // 800
+    assertEquals(new Long(80000), newDf.rows.get(0).get("weight"));  // 800
   }
 
   @Test
@@ -463,7 +463,7 @@ public class SetTest {
     DataFrame newDf = null_contained.doSet((Set) rule);
     newDf.show();
 
-    assertEquals(8.0, newDf.objGrid.get(0).get("weight"));  // 800
+    assertEquals(8.0, newDf.rows.get(0).get("weight"));  // 800
   }
 
   @Test
@@ -473,7 +473,7 @@ public class SetTest {
     DataFrame newDf = null_contained.doSet((Set) rule);
     newDf.show();
 
-    assertEquals(new Long(1059), newDf.objGrid.get(0).get("weight"));  // 259, 800
+    assertEquals(new Long(1059), newDf.rows.get(0).get("weight"));  // 259, 800
   }
 
   @Test
@@ -483,7 +483,7 @@ public class SetTest {
     DataFrame newDf = null_contained.doSet((Set) rule);
     newDf.show();
 
-    assertEquals(new Long(1060), newDf.objGrid.get(0).get("weight"));  // 259, 800, 1
+    assertEquals(new Long(1060), newDf.rows.get(0).get("weight"));  // 259, 800, 1
   }
 
   @Test
@@ -493,7 +493,7 @@ public class SetTest {
     DataFrame newDf = null_contained.doSet((Set) rule);
     newDf.show();
 
-    assertEquals(new Long(-442), newDf.objGrid.get(0).get("weight"));  // 259, 800
+    assertEquals(new Long(-442), newDf.rows.get(0).get("weight"));  // 259, 800
   }
 
   @Test
@@ -503,7 +503,7 @@ public class SetTest {
     DataFrame newDf = null_contained.doSet((Set) rule);
     newDf.show();
 
-    assertEquals(new Long(367), newDf.objGrid.get(0).get("name"));  // Ferrari, 259, 800
+    assertEquals(new Long(367), newDf.rows.get(0).get("name"));  // Ferrari, 259, 800
   }
 
   @Test
@@ -513,7 +513,7 @@ public class SetTest {
     DataFrame newDf = null_contained.doSet((Set) rule);
     newDf.show();
 
-    assertEquals("44.377", newDf.objGrid.get(0).get("name").toString().substring(0, 6));  // 259, 800
+    assertEquals("44.377", newDf.rows.get(0).get("name").toString().substring(0, 6));  // 259, 800
   }
 
   @Test
@@ -523,7 +523,7 @@ public class SetTest {
     DataFrame newDf = null_contained.doSet((Set) rule);
     newDf.show();
 
-    assertEquals(new Long(805), newDf.objGrid.get(0).get("weight"));  // 800
+    assertEquals(new Long(805), newDf.rows.get(0).get("weight"));  // 800
   }
 
 //  @Test
@@ -533,7 +533,7 @@ public class SetTest {
 //    DataFrame newDf = null_contained.doSet((Set) rule);
 //    newDf.show();
 //
-//    assertEquals(new Long(805), newDf.objGrid.get(0).get("weight"));  // 800
+//    assertEquals(new Long(805), newDf.rows.get(0).get("weight"));  // 800
 //  }
 
   @Test
@@ -543,7 +543,7 @@ public class SetTest {
     DataFrame newDf = null_contained.doSet((Set) rule);
     newDf.show();
 
-    assertEquals(true, newDf.objGrid.get(0).get("itemNo"));  // 1
+    assertEquals(true, newDf.rows.get(0).get("itemNo"));  // 1
   }
 
   // testSet41 deleted for row clause in set rule has been deprecated
@@ -564,7 +564,7 @@ public class SetTest {
     DataFrame newDf = null_contained.doSet((Set) rule);
     newDf.show();
 
-    assertEquals("001", newDf.objGrid.get(0).get("speed"));  // 259
+    assertEquals("001", newDf.rows.get(0).get("speed"));  // 259
   }
 
   @Test
@@ -574,7 +574,7 @@ public class SetTest {
     DataFrame newDf = null_contained.doSet((Set) rule);
     newDf.show();
 
-    assertEquals(new Long(7), newDf.objGrid.get(0).get("name"));  // Ferrari
+    assertEquals(new Long(7), newDf.rows.get(0).get("name"));  // Ferrari
   }
 
   // testSet53 deleted for 2-argument conditional expressions are not supported any more.
@@ -588,7 +588,7 @@ public class SetTest {
     DataFrame newDf = null_contained.doSet((Set) rule);
     newDf.show();
 
-    assertEquals(new Long(1), newDf.objGrid.get(0).get("name"));  // Ferrari
+    assertEquals(new Long(1), newDf.rows.get(0).get("name"));  // Ferrari
   }
 
   @Test
@@ -598,8 +598,8 @@ public class SetTest {
     DataFrame newDf = null_contained.doSet((Set) rule);
     newDf.show();
 
-    assertEquals("Ferrari", newDf.objGrid.get(0).get("name"));  // Ferrari
-    assertEquals("Jaguar",  newDf.objGrid.get(1).get("name"));  // Jaguar
+    assertEquals("Ferrari", newDf.rows.get(0).get("name"));  // Ferrari
+    assertEquals("Jaguar",  newDf.rows.get(1).get("name"));  // Jaguar
   }
 
   @Test
@@ -609,8 +609,8 @@ public class SetTest {
     DataFrame newDf = null_contained.doSet((Set) rule);
     newDf.show();
 
-    assertEquals(new Long(259),  newDf.objGrid.get(0).get("name"));  // 259, 800
-    assertEquals(new Long(1490), newDf.objGrid.get(5).get("name"));  // null, 1490
+    assertEquals(new Long(259),  newDf.rows.get(0).get("name"));  // 259, 800
+    assertEquals(new Long(1490), newDf.rows.get(5).get("name"));  // null, 1490
   }
 //
 //    @Test
@@ -628,8 +628,8 @@ public class SetTest {
     DataFrame newDf = null_contained.doSet((Set) rule);
     newDf.show();
 
-    assertEquals(new Long(800), newDf.objGrid.get(0).get("itemNo"));  // Ferrari
-    assertEquals(null,          newDf.objGrid.get(5).get("itemNo"));  // null
+    assertEquals(new Long(800), newDf.rows.get(0).get("itemNo"));  // Ferrari
+    assertEquals(null,          newDf.rows.get(5).get("itemNo"));  // null
   }
 
 //    @Test
