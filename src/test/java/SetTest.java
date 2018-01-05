@@ -602,16 +602,16 @@ public class SetTest {
     assertEquals("Jaguar",  newDf.objGrid.get(1).get("name"));  // Jaguar
   }
 
-//  @Test
-//  public void testSet58() throws IOException, TeddyException {
-//    DataFrame null_contained = newNullContainedDataFrame();
-//    Rule rule = new RuleVisitorParser().parse("set col: name value: coalesce(speed, weight)");
-//    DataFrame newDf = null_contained.doSet((Set) rule);
-//    newDf.show();
-//
-//    assertEquals(new Long(259),  newDf.objGrid.get(0).get("name"));  // 259, 800
-//    assertEquals(new Long(1490), newDf.objGrid.get(5).get("name"));  // null, 1490
-//  }
+  @Test
+  public void testSet58() throws IOException, TeddyException {
+    DataFrame null_contained = newNullContainedDataFrame();
+    Rule rule = new RuleVisitorParser().parse("set col: name value: coalesce(speed, weight)");
+    DataFrame newDf = null_contained.doSet((Set) rule);
+    newDf.show();
+
+    assertEquals(new Long(259),  newDf.objGrid.get(0).get("name"));  // 259, 800
+    assertEquals(new Long(1490), newDf.objGrid.get(5).get("name"));  // null, 1490
+  }
 //
 //    @Test
 //    public void testSet58() {

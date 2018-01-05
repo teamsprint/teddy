@@ -55,6 +55,26 @@ public class DataFrame implements Serializable {
     return DataType.UNKNOWN;
   }
 
+  private static ExprType getExprType(DataType dataType) {
+    switch (dataType) {
+      case DOUBLE:
+        return ExprType.DOUBLE;
+      case LONG:
+        return ExprType.LONG;
+      case STRING:
+        return ExprType.STRING;
+      case BOOLEAN:
+        // BOOLEAN으로 호출되는 경우는 Idenditier의 경우이다.
+        // 1st-depth인 경우 아무거나 줘도 상관없지만,
+        // 다른 expression의 하부로 쓰이는 경우, isNumeric assertion을 통과하기 위해서는 numeric중에 하나를 줘야한다.
+        return ExprType.DOUBLE;
+      default:
+        break;
+    }
+    LOGGER.error("getExprType(): cannot be called when dataType={}", dataType.name());
+    return ExprType.DOUBLE;
+  }
+
   private DataType getTypeOfColumn(String colName) throws TeddyException {
     int i;
     for (i = 0; i < colCnt; i++) {
@@ -70,17 +90,7 @@ public class DataFrame implements Serializable {
   public List<DataType> colTypes;
   public List<Row> objGrid;
 
-  public Rule rule;
   public String strRule;
-
-  // 처음 data를 가져오는 정보부터, 현재 dataframe에 이르기까지의 모든 정보
-  // 내 스스로는 필요없음. upstreamDataFrame의 내용이 필요할 때가 있음 (join, union, wrangled -> wrangled)
-  private List<DataFrame> upstreamDataFrame;
-  private String dsType;
-  private String importType;
-  private String filePath;
-  private String queryStmt;
-  private List<String> ruleStrings;
 
   public DataFrame() {
     colCnt = 0;
@@ -441,65 +451,6 @@ public class DataFrame implements Serializable {
     return resultType;
   }
 
-  private Object eval(Expression expr, int rowno) throws TeddyException {
-    DataType resultType = DataType.UNKNOWN;
-    Object resultObj = null;
-    String errmsg;
-    int colno;
-
-    // Identifier
-    if (expr instanceof Identifier.IdentifierExpr) {
-      String colName = ((Identifier.IdentifierExpr) expr).getValue();
-      for (colno = 0; colno < colCnt; colno++) {
-        if (colNames.get(colno).equals(colName)) {
-          resultType = colTypes.get(colno);
-          resultObj = objGrid.get(rowno).get(colno);
-          break;
-        }
-      }
-      if (colno == colCnt) {
-        throw new TeddyException("eval(): column not found: " + colName);
-      }
-    }
-    // Constant
-    else if (expr instanceof Constant) {
-      if (expr instanceof Constant.StringExpr) {
-        resultType = getType(ExprType.STRING);
-      } else if (expr instanceof Constant.LongExpr) {
-        resultType = getType(ExprType.LONG);
-      } else if (expr instanceof Constant.DoubleExpr) {
-        resultType = getType(ExprType.DOUBLE);
-      } else if (expr instanceof Null.NullExpr) {
-        resultType = getType(ExprType.LONG);  // numeric인지 체크하는 function들에서 assertion을 피하기 위해
-      } else {
-        errmsg = String.format("eval(): unsupported constant type: expr=%s", expr);   // TODO: boolean, array support
-        throw new TeddyException(errmsg);
-      }
-      resultObj = ((Constant)expr).getValue();
-    }
-    // Binary Operation
-    else if (expr instanceof Expr.BinaryNumericOpExprBase) {
-      ExprEval binOpEval = ((Expr.BinaryNumericOpExprBase) expr).eval(objGrid.get(rowno));
-      resultType = getType(binOpEval.type());
-      resultObj = binOpEval.value();
-    }
-    // Function Operation
-    else if (expr instanceof Expr.FunctionExpr) {
-      try {
-        ExprEval funcEval = ((Expr.FunctionExpr) expr).eval(objGrid.get(rowno));
-        resultType = getType(funcEval.type());
-        resultObj = funcEval.value();
-      } catch (AssertionError e) {
-        String msg = "eval(): unhandled error in function expression";
-        LOGGER.error(msg);
-        throw new TeddyException(msg);
-      }
-    }
-
-    LOGGER.trace("eval(): resultType={} resultObj={} expr={}", resultType, resultObj == null ? "null" : resultObj.toString(), expr.toString());
-    return resultObj;
-  }
-
   private Object cast(Object obj, DataType fromType, DataType toType) throws TeddyException {
     if (obj == null) {
       return null;
@@ -599,18 +550,18 @@ public class DataFrame implements Serializable {
       Row newRow = new Row();
       for (int colno = 0; colno < newDf.colCnt; colno++) {
         if (colno == targetColNo) {
-          Object resultObj = eval(expr, rowno);
+          ExprEval exprEval = ((Expr) expr).eval(objGrid.get(rowno));
           if (newDf.colTypes.get(colno) == DataType.BOOLEAN) {
-            newRow.add(targetColName, Boolean.valueOf(((Long)resultObj).longValue() == 1));
+            newRow.add(targetColName, Boolean.valueOf(exprEval.longValue() == 1));
           } else if (newDf.colTypes.get(colno) == DataType.STRING) {
             // for compatability to twinkle
-            String resultStr= (String)resultObj;
+            String resultStr= exprEval.stringValue();
             if (resultStr != null) {
               resultStr = resultStr.replaceAll("'", "");
             }
             newRow.add(targetColName, resultStr);
           } else {
-            newRow.add(targetColName, resultObj);
+            newRow.add(targetColName, exprEval.value());
           }
         } else {
           newRow.add(colNames.get(colno), row.get(colno));
@@ -984,15 +935,13 @@ public class DataFrame implements Serializable {
     String targetColName;
     Expression expr = replace.getOn();
     Expression withExpr = replace.getWith();
-    String withExprStr;
-    Boolean global = replace.getGlobal();
+    Boolean globalReplace = replace.getGlobal();
     int rowno;
 
     if (!(targetColExpr instanceof Identifier.IdentifierExpr)) {
       throw new TeddyException("doReplace(): wrong target column expression: " + targetColExpr.toString());
     }
     targetColName = targetColExpr.toString();
-    withExprStr = (String)eval(withExpr, 0);  // TODO; eval이 Row를 받도록.
 
     DataFrame newDf = new DataFrame();
     newDf.colCnt = colCnt;
@@ -1017,10 +966,10 @@ public class DataFrame implements Serializable {
       Pattern pattern = Pattern.compile(patternStr);
       Matcher matcher = pattern.matcher(targetStr);
       if (matcher.find()) {
-        if (global) {
-          row.set(targetColName, matcher.replaceAll(stripSingleQuote((String) eval(withExpr, rowno))));
+        if (globalReplace) {
+          row.set(targetColName, matcher.replaceAll(stripSingleQuote(((Expr) withExpr).eval(objGrid.get(rowno)).stringValue())));
         } else {
-          row.set(targetColName, matcher.replaceFirst(stripSingleQuote((String) eval(withExpr, rowno))));
+          row.set(targetColName, matcher.replaceFirst(stripSingleQuote(((Expr) withExpr).eval(objGrid.get(rowno)).stringValue())));
         }
       }
     }
@@ -2079,7 +2028,7 @@ public class DataFrame implements Serializable {
     newDf.colTypes.addAll(colTypes);
 
     for (int rowno = 0; rowno < objGrid.size(); rowno++) {
-      if (((Long) eval(condExpr, rowno)).longValue() == ((keep) ? 1 : 0)) {
+      if (((Expr) condExpr).eval(objGrid.get(rowno)).longValue() == ((keep) ? 1 : 0)) {
         newDf.objGrid.add(objGrid.get(rowno));
       }
     }
