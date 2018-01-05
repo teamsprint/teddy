@@ -1,12 +1,10 @@
 package com.skt.metatron.teddy;
 
-import com.skt.metatron.discovery.common.preparation.RuleVisitorParser;
 import com.skt.metatron.discovery.common.preparation.rule.*;
 import com.skt.metatron.discovery.common.preparation.rule.Set;
 import com.skt.metatron.discovery.common.preparation.rule.expr.*;
 import org.apache.commons.collections.map.HashedMap;
 import org.codehaus.jackson.JsonParseException;
-import org.codehaus.jackson.JsonProcessingException;
 import org.codehaus.jackson.map.JsonMappingException;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.slf4j.Logger;
@@ -556,7 +554,7 @@ public class DataFrame implements Serializable {
 
     Row targetRow = rows.get(targetRowno);
     for (int colno = 0; colno < colCnt; colno++) {
-      newDf.colNames.add(colno, (String)targetRow.get(colno));  // colno 필요?
+      newDf.colNames.add((String)targetRow.get(colno));
       newDf.colTypes.add(colTypes.get(colno));
     }
 
@@ -572,14 +570,13 @@ public class DataFrame implements Serializable {
       }
       newDf.rows.add(newRow);
     }
-
     return newDf;
   }
 
   public void addJoinedRow(Row lrow, List<String> leftSelectColNames, Row rrow, List<String> rightSelectColNames) {
     Row newRow = new Row();
     for (String colName : leftSelectColNames) {
-      newRow.add(colName, lrow.get(colName));                             // left에서 온 컬럼은 이름 그대로 넣음
+      newRow.add(colName, lrow.get(colName));                           // left에서 온 컬럼은 이름 그대로 넣음
     }
     for (String colName : rightSelectColNames) {
       newRow.add(this.colNames.get(newRow.colCnt), rrow.get(colName));  // 필요한 경우 "r_"이 붙은 컬럼 이름 (여기까지 온 것은 이미 붙은 상황)
@@ -636,7 +633,6 @@ public class DataFrame implements Serializable {
   }
 
   public DataFrame doJoin(Join join, DataFrame rightDf, int limitRowCnt) throws TeddyException {
-    Expression dataset2 = join.getDataset2();
     Expression leftSelectCol = join.getLeftSelectCol();
     Expression rightSelectCol = join.getRightSelectCol();
     Expression condition = join.getCondition();
@@ -668,7 +664,6 @@ public class DataFrame implements Serializable {
     for (String colName : rightSelectColNames) {
       newDf.colNames.add(checkRightColName(colName));  // 같은 column이름이 있을 경우 right에서 온 것에 "r_"을 붙여준다. (twinkle과 동일한 규칙)
       newDf.colTypes.add(rightDf.getTypeOfColumn(colName));
-
     }
 
     List<Object[]> lobjsList = new ArrayList<>();
@@ -712,7 +707,6 @@ public class DataFrame implements Serializable {
             break;
           }
         }
-
         if (equal) {
           lrow = rows.get(lrowno);
           rrow = rightDf.rows.get(rrowno);
@@ -741,7 +735,6 @@ public class DataFrame implements Serializable {
         if (newDf.rows.size() >= limitRowCnt) {
           return newDf;
         }
-
         newDf.rows.add(row);
       }
     }
@@ -752,7 +745,7 @@ public class DataFrame implements Serializable {
     String targetColName = extract.getCol();
     int targetColno = -1;
     Expression expr = extract.getOn();
-    Expression quote = extract.getQuote();
+    Expression quote = extract.getQuote();    // TODO: quote processing
     int limit = extract.getLimit();
     int rowno, colno;
 
@@ -778,10 +771,7 @@ public class DataFrame implements Serializable {
 
     List<String> newColNames = new ArrayList<>();
     for (int i = 0; i < limit; i++) {
-      String newColName = "extract_" + (i + 1);
-      while (newDf.colNames.contains(newColName)) {
-        newColName += "_1";
-      }
+      String newColName = checkNewColName("extract_" + (i + 1), true);
       newColNames.add(newColName);  // for newRow add
       newDf.colNames.add(newColName);
       newDf.colTypes.add(DataType.STRING);
@@ -816,7 +806,6 @@ public class DataFrame implements Serializable {
       }
       newDf.rows.add(newRow);
     }
-
     return newDf;
   }
 
@@ -885,7 +874,6 @@ public class DataFrame implements Serializable {
       newRow.add(newColName, count);
       newDf.rows.add(newRow);
     }
-
     return newDf;
   }
 
@@ -932,7 +920,6 @@ public class DataFrame implements Serializable {
         }
       }
     }
-
     return newDf;
   }
 
@@ -940,7 +927,7 @@ public class DataFrame implements Serializable {
     Expression targetExpr = nest.getCol();
     List<String> targetColNames = new ArrayList<>();
     String into = nest.getInto();
-    String as = nest.getAs();
+    String as = nest.getAs().replaceAll("'", "");   // for compatability to twinkle
     int rowno, colno;
 
     if (targetExpr instanceof Identifier.IdentifierExpr) {
@@ -950,9 +937,6 @@ public class DataFrame implements Serializable {
     } else {
       assert false : targetExpr;
     }
-
-    // for compatability to twinkle
-    as = as.replaceAll("'", "");
 
     DataFrame newDf = new DataFrame();
     newDf.colCnt = colCnt;
@@ -985,7 +969,6 @@ public class DataFrame implements Serializable {
       }
       newDf.rows.add(newRow);
     }
-
     return newDf;
   }
 
@@ -1050,8 +1033,7 @@ public class DataFrame implements Serializable {
       }
       newColName = "unnest_0";
     } else {
-      // row별로 fetch는 mapKey로
-      // 컬럼이름은 mapKey를 기존컬럼과 안겹치게 변형한 것
+      // row별로 fetch는 mapKey로, 컬럼이름은 mapKey를 기존컬럼과 안겹치게 변형한 것
       if (idx instanceof Identifier.IdentifierExpr) {
         throw new TeddyException("doUnnest(): idx on MAP type should be STRING (maybe, this is a column name): " + ((Identifier.IdentifierExpr) idx).getValue());
       } else if (idx instanceof Constant.StringExpr) {
@@ -1147,8 +1129,8 @@ public class DataFrame implements Serializable {
     }
 
     Iterator<Row> iter = rows.iterator();
-    Row row = null;     // of aggregatedDf
-    Row newRow = null;  // of pivotedDf
+    Row row;     // of aggregatedDf
+    Row newRow;  // of pivotedDf
     while (iter.hasNext()) {
       row = iter.next();  // of aggregatedDf
 
@@ -1174,14 +1156,10 @@ public class DataFrame implements Serializable {
 
   public DataFrame doMerge(Merge merge) throws TeddyException {
     Expression targetExpr = merge.getCol();
-    String with = stripSingleQuote(merge.getWith());
-    String as = stripSingleQuote(merge.getAs());
-    int rowno, colno;
-
-    // for compatability to twinkle
-    as = as.replaceAll("'", "");
-
+    String with = merge.getWith().replaceAll("'", "");  // for compatability to twinkle
+    String as = merge.getAs().replaceAll("'", "");      // for compatability to twinkle
     String newColName = checkNewColName(as, true);
+    int rowno, colno;
 
     DataFrame newDf = new DataFrame();
     newDf.colCnt = colCnt;
@@ -1199,7 +1177,6 @@ public class DataFrame implements Serializable {
     } else if (targetExpr instanceof Identifier.IdentifierArrayExpr) {
       targetColNames = ((Identifier.IdentifierArrayExpr) targetExpr).getValue();
     }
-
     if (targetColNames.size() == 0) {
       throw new TeddyException("doMerge(): no input column designated");
     }
@@ -1287,7 +1264,6 @@ public class DataFrame implements Serializable {
       for (colno = 0; colno < colCnt; colno++) {
         newRow.add(colNames.get(colno), row.get(colno));
       }
-
       String targetStr = (String)row.get(targetColno);
       Pattern pattern = Pattern.compile(patternStr);
       Matcher matcher = pattern.matcher(targetStr);
@@ -1310,7 +1286,6 @@ public class DataFrame implements Serializable {
       }
       newDf.rows.add(newRow);
     }
-
     return newDf;
   }
 
@@ -1500,10 +1475,8 @@ public class DataFrame implements Serializable {
       for (Object groupByValue : (List<Object>) elem.getKey()) {
         newRow.add(groupByColNames.get(i++), groupByValue);
       }
-
       newDf.rows.add(newRow);
     }
-
     return newDf;
   }
 
@@ -1535,7 +1508,6 @@ public class DataFrame implements Serializable {
     } else {
       throw new TeddyException("doAggregate(): invalid aggregation value expression type: " + aggrValueExpr.toString());
     }
-
     return doAggregateInternal(groupByColNames, targetExprStrs);
   }
 
@@ -1619,7 +1591,7 @@ public class DataFrame implements Serializable {
     List<String> aggrValueStrs = new ArrayList<>();      // sum(x), avg(x), count() 등의 expression string
     List<AggrType> aggrTypes = new ArrayList<>();
     List<String> aggrTargetColNames = new ArrayList<>();
-    int rowno, colno;
+    int colno;
 
     // group by expression -> group by colnames
     if (groupByColExpr == null) {
@@ -1656,7 +1628,6 @@ public class DataFrame implements Serializable {
     List<String> mergedGroupByColNames = new ArrayList<>();
     mergedGroupByColNames.addAll(pivotColNames);
     mergedGroupByColNames.addAll(groupByColNames);
-
     DataFrame aggregatedDf = doAggregateInternal(mergedGroupByColNames, aggrValueStrs);
 
     // <aggregatedDf>
@@ -1740,7 +1711,7 @@ public class DataFrame implements Serializable {
         }
       }
 
-      if (pivotedDf.colCnt > 1000) {
+      if (pivotedDf.colCnt > 2000) {  // FIXME: hard-cording
         throw new TeddyException("doPivot(): too many pivoted column count: " + pivotedDf.colCnt);
       }
 
@@ -1754,7 +1725,7 @@ public class DataFrame implements Serializable {
     Map<String, Object> groupByKey = null;
 
     Iterator<Row> iter = aggregatedDf.rows.iterator();
-    Row row = null;     // of aggregatedDf
+    Row row;            // of aggregatedDf
     Row newRow = null;  // of pivotedDf
     while (iter.hasNext()) {
       row = iter.next();  // of aggregatedDf
@@ -1777,8 +1748,7 @@ public class DataFrame implements Serializable {
                 row.get(i));
       }
     }
-    pivotedDf.rows.add(newRow);
-
+    pivotedDf.rows.add(newRow); // add the last retained row
     return pivotedDf;
   }
 
@@ -1842,10 +1812,10 @@ public class DataFrame implements Serializable {
     }
 
     Iterator<Row> iter = rows.iterator();
-    Row row = null;     // of aggregatedDf
-    Row newRow = null;  // of pivotedDf
+    Row row;     // of aggregatedDf
+    Row newRow;  // of pivotedDf
     while (iter.hasNext()) {
-      row = iter.next();  // of aggregatedDf
+      row = iter.next();
       newRow = new Row();
       for (String fixedColName : fixedColNames) {
         newRow.add(fixedColName, row.get(fixedColName));
@@ -1960,7 +1930,6 @@ public class DataFrame implements Serializable {
         return 0;
       }
     });
-
     return newDf;
   }
 
@@ -1976,7 +1945,6 @@ public class DataFrame implements Serializable {
     } else {
       throw new TeddyException("doSort(): invalid order by column expression type: " + orderByColExpr.toString());
     }
-
     return doSortInternal(orderByColNames);
   }
 
