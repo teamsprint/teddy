@@ -295,6 +295,13 @@ public class DataFrame implements Serializable {
     return json;
   }
 
+  private void assertArgc(int desirable, List<Expr> args, String func) throws TeddyException {
+    if (args.size() != desirable) {
+      LOGGER.error("decideType(): invalid function arguments: func={} argc={} desirable={}", func, args.size(), desirable);
+      throw new TeddyException("decideType(): invalid function arguments");
+    }
+  }
+
   private DataType decideType(Expression expr) throws TeddyException {
     DataType resultType = DataType.UNKNOWN;
     String errmsg;
@@ -322,7 +329,7 @@ public class DataFrame implements Serializable {
       } else if (expr instanceof Constant.DoubleExpr) {
         resultType = getType(ExprType.DOUBLE);
       } else if (expr instanceof Null.NullExpr) {
-        resultType = DataType.UNKNOWN;
+        resultType = DataType.UNKNOWN;  // binary op에서 반대편 type을 result로 하기 위해
       }
       else {
         errmsg = String.format("decideType(): unsupported constant type: expr=%s", expr);   // TODO: boolean, array support
@@ -344,42 +351,93 @@ public class DataFrame implements Serializable {
     }
     // Function Operation
     else if (expr instanceof Expr.FunctionExpr) {
+      String func = ((Expr.FunctionExpr) expr).getName();
       List<Expr> args = ((Expr.FunctionExpr) expr).getArgs();
-      if (((Expr.FunctionExpr) expr).getName().equals("if")) {
-        if (args.size() == 1) {
-          resultType = DataType.BOOLEAN;
-        } else if (args.size() == 3) {
-          DataType trueExpr = decideType(args.get(1));
-          DataType falseExpr = decideType(args.get(2));
-          if (trueExpr == falseExpr) {
-            resultType = trueExpr;
-          } else {
-            if (trueExpr == DataType.UNKNOWN && falseExpr == DataType.UNKNOWN) {
-              throw new TeddyException(String.format("decideType(): both types are UNKNOWN trueVal=%s falseVal=%s",
-                      args.get(1).toString(), args.get(2).toString()));
-            } else if (trueExpr == DataType.UNKNOWN) {
-              resultType = falseExpr;
-            } else if (falseExpr == DataType.UNKNOWN) {
+      switch (func) {
+        // conditional function
+        case "if":
+          if (args.size() == 1) {
+            resultType = DataType.BOOLEAN;
+          } else if (args.size() == 3) {
+            DataType trueExpr = decideType(args.get(1));
+            DataType falseExpr = decideType(args.get(2));
+            if (trueExpr == falseExpr) {
               resultType = trueExpr;
             } else {
-              throw new TeddyException(String.format("decideType(): type different: trueVal=%s falseVal=%s",
-                      args.get(1).toString(), args.get(2).toString()));
+              if (trueExpr == DataType.UNKNOWN && falseExpr == DataType.UNKNOWN) {
+                throw new TeddyException(String.format("decideType(): both types are UNKNOWN trueVal=%s falseVal=%s",
+                        args.get(1).toString(), args.get(2).toString()));
+              } else if (trueExpr == DataType.UNKNOWN) {
+                resultType = falseExpr;
+              } else if (falseExpr == DataType.UNKNOWN) {
+                resultType = trueExpr;
+              } else {
+                throw new TeddyException(String.format("decideType(): type different: trueVal=%s falseVal=%s",
+                        args.get(1).toString(), args.get(2).toString()));
+              }
             }
+          } else {
+            throw new TeddyException("decideType(): invalid conditional function argument count: " + args.size());
           }
-        } else {
-          throw new TeddyException("decideType(): invalid function arguments: " + args.size());
-        }
-      } else if (((Expr.FunctionExpr) expr).getName().equals("length")) {
-        return DataType.LONG;
-      } else if (((Expr.FunctionExpr) expr).getName().equals("isnull")) {
-        return DataType.BOOLEAN;
-      } else if (((Expr.FunctionExpr) expr).getName().equals("null")) {
-        return DataType.UNKNOWN;
-      } else {
-        throw new TeddyException("decideType(): invalid function type: " + expr.toString());
-      }
-    }
-//    LOGGER.debug(String.format("decideType(): resultType=%s expr=%s", resultType, expr));
+          break;
+        // 1-argument functions
+        case "length":
+        case "math.getExponent":
+        case "math.round":
+          resultType = DataType.LONG;
+          assertArgc(1, args, func);
+          break;
+        case "isnull":
+          resultType = DataType.BOOLEAN;
+          assertArgc(1, args, func);
+          break;
+        case "upper":
+        case "lower":
+          resultType = DataType.STRING;
+          assertArgc(1, args, func);
+          break;
+        case "math.abs":
+          resultType = decideType(args.get(0));
+          assertArgc(1, args, func);
+          break;
+        case "math.acos":
+        case "math.asin":
+        case "math.atan":
+        case "math.cbrt":
+        case "math.ceil":
+        case "math.cos":
+        case "math.cosh":
+        case "math.exp":
+        case "math.floor":
+        case "math.signum":
+        case "math.sin":
+        case "math.sinh":
+        case "math.sqrt":
+        case "math.tan":
+        case "math.tanh":
+          resultType = DataType.DOUBLE;
+          assertArgc(1, args, func);
+          break;
+        // 2-argument functions
+        case "math.max":
+        case "math.min":
+          resultType = DataType.LONG;
+          assertArgc(2, args, func);
+          break;
+        case "math.pow":
+          resultType = DataType.DOUBLE;
+          assertArgc(2, args, func);
+          break;
+        case "coalesce":
+          resultType = DataType.UNKNOWN;
+          break;
+        default:
+          LOGGER.error("decideType(): invalid function type: " + expr.toString());
+          throw new TeddyException("decideType(): invalid function type");
+      } // end of switch (func)
+    } // end of if (expr instanceof Expr.FunctionExpr)
+
+    LOGGER.debug(String.format("decideType(): resultType=%s expr=%s", resultType, expr.toString()));
     return resultType;
   }
 
@@ -412,7 +470,7 @@ public class DataFrame implements Serializable {
       } else if (expr instanceof Constant.DoubleExpr) {
         resultType = getType(ExprType.DOUBLE);
       } else if (expr instanceof Null.NullExpr) {
-        resultType = getType(ExprType.STRING);
+        resultType = getType(ExprType.LONG);  // numeric인지 체크하는 function들에서 assertion을 피하기 위해
       } else {
         errmsg = String.format("eval(): unsupported constant type: expr=%s", expr);   // TODO: boolean, array support
         throw new TeddyException(errmsg);
@@ -438,7 +496,7 @@ public class DataFrame implements Serializable {
       }
     }
 
-//    System.out.println(String.format("eval(): resultType=%s resultObj=%s expr=%s", resultType, resultObj.toString(), expr));
+    LOGGER.trace("eval(): resultType={} resultObj={} expr={}", resultType, resultObj == null ? "null" : resultObj.toString(), expr.toString());
     return resultObj;
   }
 
@@ -542,9 +600,6 @@ public class DataFrame implements Serializable {
       for (int colno = 0; colno < newDf.colCnt; colno++) {
         if (colno == targetColNo) {
           Object resultObj = eval(expr, rowno);
-          if (expr instanceof Expr.BinDivExpr && resultObj instanceof Long) {   // for compatability to twinkle, which acts like this because of spark's behavior
-            resultObj = (Double.valueOf((Long)resultObj));
-          }
           if (newDf.colTypes.get(colno) == DataType.BOOLEAN) {
             newRow.add(targetColName, Boolean.valueOf(((Long)resultObj).longValue() == 1));
           } else if (newDf.colTypes.get(colno) == DataType.STRING) {

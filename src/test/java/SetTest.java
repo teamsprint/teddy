@@ -321,15 +321,15 @@ public class SetTest {
     assertEquals(1.0,  newDf.objGrid.get(5).get("speed"));   // null, 1490
   }
 
-//  @Test
-//  public void testSet20() throws IOException, TeddyException {
-//    DataFrame null_contained = newNullContainedDataFrame();
-//    Rule rule = new RuleVisitorParser().parse("set col: name value: upper(name)");
-//    DataFrame newDf = null_contained.doSet((Set) rule);
-//    newDf.show();
-//
-//    assertEquals("FERRARI", newDf.objGrid.get(0).get("name"));
-//  }
+  @Test
+  public void testSet20() throws IOException, TeddyException {
+    DataFrame null_contained = newNullContainedDataFrame();
+    Rule rule = new RuleVisitorParser().parse("set col: name value: upper(name)");
+    DataFrame newDf = null_contained.doSet((Set) rule);
+    newDf.show();
+
+    assertEquals("FERRARI", newDf.objGrid.get(0).get("name"));
+  }
 
   @Test
   public void testSet21() throws IOException, TeddyException {
@@ -506,15 +506,15 @@ public class SetTest {
     assertEquals(new Long(367), newDf.objGrid.get(0).get("name"));  // Ferrari, 259, 800
   }
 
-//  @Test
-//  public void testSet37() throws IOException, TeddyException {
-//    DataFrame null_contained = newNullContainedDataFrame();
-//    Rule rule = new RuleVisitorParser().parse("set col: name value: math.sqrt(speed) + math.sqrt(weight)");
-//    DataFrame newDf = null_contained.doSet((Set) rule);
-//    newDf.show();
-//
-//    assertEquals("44.377", newDf.objGrid.get(0).get("name").toString().substring(0, 6));  // 259, 800
-//  }
+  @Test
+  public void testSet37() throws IOException, TeddyException {
+    DataFrame null_contained = newNullContainedDataFrame();
+    Rule rule = new RuleVisitorParser().parse("set col: name value: math.sqrt(speed) + math.sqrt(weight)");
+    DataFrame newDf = null_contained.doSet((Set) rule);
+    newDf.show();
+
+    assertEquals("44.377", newDf.objGrid.get(0).get("name").toString().substring(0, 6));  // 259, 800
+  }
 
   @Test
   public void testSet38() throws IOException, TeddyException {
@@ -535,14 +535,6 @@ public class SetTest {
 //
 //    assertEquals(new Long(805), newDf.objGrid.get(0).get("weight"));  // 800
 //  }
-//
-//    @Test
-//    public void testSet39() {
-//        String rule = "set col: contract_date value: math.floor(datediff (to_date(contract_date, 'yyyy-MM-dd'), to_date(birth_date, 'yyyy-MM-dd'))/365.25/10)";
-//        Dataset resultDF = metisService.transform(getRuleSet(rule), true).getResultSet();
-//        resultDF.show();
-//        assertEquals(new Long(0), resultDF.select("contract_date").as(Encoders.LONG()).first());
-//    }
 
   @Test
   public void testSet40() throws IOException, TeddyException {
@@ -555,15 +547,7 @@ public class SetTest {
   }
 
   // testSet41 deleted for row clause in set rule has been deprecated
-
-//    @Test
-//    public void testSet42() {
-//        String rule = "set col: name value: upper(name) row: name == 'Audi'";
-//        Dataset resultDF = metisService.transform(getRuleSet(rule), true).getResultSet();
-//        resultDF.show();
-//        assertEquals("AUDI", resultDF.select("name").as(Encoders.STRING()).first());
-//    }
-
+  // testSet42 deleted for row clause in set rule has been deprecated
   // testSet43 deleted for row clause in set rule has been deprecated
   // testSet44 deleted for row clause in set rule has been deprecated
   // testSet45 deleted for row clause in set rule has been deprecated
@@ -618,6 +602,16 @@ public class SetTest {
     assertEquals("Jaguar",  newDf.objGrid.get(1).get("name"));  // Jaguar
   }
 
+//  @Test
+//  public void testSet58() throws IOException, TeddyException {
+//    DataFrame null_contained = newNullContainedDataFrame();
+//    Rule rule = new RuleVisitorParser().parse("set col: name value: coalesce(speed, weight)");
+//    DataFrame newDf = null_contained.doSet((Set) rule);
+//    newDf.show();
+//
+//    assertEquals(new Long(259),  newDf.objGrid.get(0).get("name"));  // 259, 800
+//    assertEquals(new Long(1490), newDf.objGrid.get(5).get("name"));  // null, 1490
+//  }
 //
 //    @Test
 //    public void testSet58() {
