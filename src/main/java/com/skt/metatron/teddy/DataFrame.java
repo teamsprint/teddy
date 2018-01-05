@@ -321,7 +321,10 @@ public class DataFrame implements Serializable {
         resultType = getType(ExprType.LONG);
       } else if (expr instanceof Constant.DoubleExpr) {
         resultType = getType(ExprType.DOUBLE);
-      } else {
+      } else if (expr instanceof Null.NullExpr) {
+        resultType = DataType.UNKNOWN;
+      }
+      else {
         errmsg = String.format("decideType(): unsupported constant type: expr=%s", expr);   // TODO: boolean, array support
         throw new TeddyException(errmsg);
       }
@@ -408,6 +411,8 @@ public class DataFrame implements Serializable {
         resultType = getType(ExprType.LONG);
       } else if (expr instanceof Constant.DoubleExpr) {
         resultType = getType(ExprType.DOUBLE);
+      } else if (expr instanceof Null.NullExpr) {
+        resultType = getType(ExprType.STRING);
       } else {
         errmsg = String.format("eval(): unsupported constant type: expr=%s", expr);   // TODO: boolean, array support
         throw new TeddyException(errmsg);

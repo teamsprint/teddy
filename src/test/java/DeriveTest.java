@@ -71,7 +71,6 @@ public class DeriveTest {
 
   @BeforeClass
   public static void setUp() throws Exception {
-    loadGridCsv("sample", "metatron_dataset/small/sample.csv");
     loadGridCsv("null_contained", "metatron_dataset/small/null_contained.csv");
   }
 
@@ -139,12 +138,12 @@ public class DeriveTest {
   @Test
   public void testDerive5() throws IOException, TeddyException {
     DataFrame null_contained = newNullContainedDataFrame();
-    Rule rule = new RuleVisitorParser().parse("derive value: if(itemNo, 1.0, 2.0) as: 'cate_if'");
+    Rule rule = new RuleVisitorParser().parse("derive value: if(itemNo, '1', '2') as: 'cate_if'");
     DataFrame newDf = null_contained.doDerive((Derive) rule);
     newDf.show();
 
-    assertEquals(new Double(1.0), newDf.objGrid.get(0).get("cate_if"));   // 1
-    assertEquals(new Double(2.0), newDf.objGrid.get(1).get("cate_if"));   // null
+    assertEquals("1", newDf.objGrid.get(0).get("cate_if"));   // 1
+    assertEquals("2", newDf.objGrid.get(1).get("cate_if"));   // null
   }
 
   @Test
@@ -202,7 +201,7 @@ public class DeriveTest {
     DataFrame newDf = null_contained.doDerive((Derive) rule);
     newDf.show();
 
-    assertEquals(new Double(10.0), newDf.objGrid.get(0).get("cate_if"));   // Ferrari
+    assertEquals(new Double(10.0), newDf.objGrid.get(0).get("cate_if"));  // Ferrari
     assertEquals(new Double(1.0), newDf.objGrid.get(1).get("cate_if"));   // Jaguar
     assertEquals(new Double(1.0), newDf.objGrid.get(5).get("cate_if"));   // null
   }
@@ -277,7 +276,7 @@ public class DeriveTest {
 
     assertEquals(false, newDf.objGrid.get(0).get("cate_if"));   // 259, 800
     assertEquals(false, newDf.objGrid.get(1).get("cate_if"));   // 274, 998
-    assertEquals(true,  newDf.objGrid.get(3).get("cate_if"));   // 340, 1800
+    assertEquals(true,  newDf.objGrid.get(3).get("cate_if"));   // 355, 1490
     assertEquals(false, newDf.objGrid.get(5).get("cate_if"));   // null, 1490
   }
 
@@ -290,7 +289,7 @@ public class DeriveTest {
 
     assertEquals("bad",  newDf.objGrid.get(0).get("cate_if"));   // 259, 800
     assertEquals("bad",  newDf.objGrid.get(1).get("cate_if"));   // 274, 998
-    assertEquals("good", newDf.objGrid.get(3).get("cate_if"));   // 340, 1800
+    assertEquals("good", newDf.objGrid.get(3).get("cate_if"));   // 355, 1490
     assertEquals("bad",  newDf.objGrid.get(5).get("cate_if"));   // null, 1490
   }
 
@@ -303,7 +302,7 @@ public class DeriveTest {
 
     assertEquals(new Long(0), newDf.objGrid.get(0).get("cate_if"));   // 259, 800
     assertEquals(new Long(0), newDf.objGrid.get(1).get("cate_if"));   // 274, 998
-    assertEquals(new Long(1), newDf.objGrid.get(3).get("cate_if"));   // 340, 1800
+    assertEquals(new Long(1), newDf.objGrid.get(3).get("cate_if"));   // 355, 1490
     assertEquals(new Long(0), newDf.objGrid.get(5).get("cate_if"));   // null, 1490
   }
 
@@ -316,10 +315,10 @@ public class DeriveTest {
 
     assertEquals(1.0, newDf.objGrid.get(0).get("cate_if"));   // 259, 800
     assertEquals(1.0, newDf.objGrid.get(1).get("cate_if"));   // 274, 998
-    assertEquals(10.0, newDf.objGrid.get(3).get("cate_if"));  // 340, 1800
+    assertEquals(10.0, newDf.objGrid.get(3).get("cate_if"));  // 355, 1490
     assertEquals(1.0, newDf.objGrid.get(5).get("cate_if"));   // null, 1490
   }
-//
+
 //  @Test
 //  public void testDerive20() throws IOException, TeddyException {
 //    DataFrame null_contained = newNullContainedDataFrame();
@@ -506,7 +505,7 @@ public class DeriveTest {
 
     assertEquals(new Long(367), newDf.objGrid.get(0).get("cate_if"));  // Ferrari, 259, 1
   }
-//
+
 //  @Test
 //  public void testDerive37() throws IOException, TeddyException {
 //    DataFrame null_contained = newNullContainedDataFrame();
@@ -526,7 +525,7 @@ public class DeriveTest {
 
     assertEquals(new Long(805), newDf.objGrid.get(0).get("cate_if"));  // 800
   }
-//
+
 //    @Test
 //    public void testDerive39() {
 ////        String rule = "derive value: if(floor(datediff(to_date(contract_date), to_date(birth_date))/365.25/10) == 1, 1, 0) as: age_10";
@@ -546,15 +545,7 @@ public class DeriveTest {
 
     assertEquals(new Long(1), newDf.objGrid.get(0).get("cate_if"));  // 800
   }
-//
-//    @Test
-//    public void testDerive40() {
-//        String rule = "derive value: 1 as: 'cate_if'";
-//        Dataset resultDF = metisService.transform(getRuleSet(rule), true).getResultSet();
-//        resultDF.show();
-//        assertEquals(new Long(1), resultDF.select("cate_if").as(Encoders.LONG()).first());
-//    }
-//
+
 //    @Test
 //    public void testDerive41() {
 //        String rule = "derive value: substring(name, 1, 2) as: 'cate_if'";

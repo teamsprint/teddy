@@ -168,9 +168,9 @@ public class DataFrameTest {
     List<String> ruleStrings = new ArrayList<>();
 
     ruleStrings.add("header rownum: 1");
-    ruleStrings.add("set col: itemNo value: if(itemNo=='NULL', null(), itemNo)");
-    ruleStrings.add("set col: name value: if(name=='NULL', null(), name)");
-    ruleStrings.add("set col: speed value: if(speed=='NULL', null(), speed)");
+    ruleStrings.add("set col: itemNo value: if(itemNo=='NULL', null, itemNo)");
+    ruleStrings.add("set col: name value: if(name=='NULL', null, name)");
+    ruleStrings.add("set col: speed value: if(speed=='NULL', null, speed)");
 
     ruleStrings.add("settype col: itemNo type: long");
     ruleStrings.add("settype col: speed type: long");
