@@ -72,7 +72,7 @@ public class AggregateTest {
 
     @BeforeClass
     public static void setUp() throws Exception {
-        loadGridCsv("multi", "dataprep/pivot_test_multiple_column.csv");
+        loadGridCsv("multi", "teddy/pivot_test_multiple_column.csv");
     }
 
     @Test

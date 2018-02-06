@@ -67,6 +67,7 @@ public class DataFrame implements Serializable {
   public List<DataType> colTypes;
   public List<Row> rows;
 
+  public Rule rule;
   public String strRule;
 
   public DataFrame() {

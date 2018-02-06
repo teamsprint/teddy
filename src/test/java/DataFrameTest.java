@@ -72,14 +72,14 @@ public class DataFrameTest {
 
   @BeforeClass
   public static void setUp() throws Exception {
-    loadGridCsv("sample", "metatron_dataset/small/sample.csv");
-    loadGridCsv("contract", "data/ibk_contract_n10000.csv");
-    loadGridCsv("product", "data/ibk_product_n5000.csv");
-    loadGridCsv("store", "data/ibk_store_n10000.csv");
-    loadGridCsv("store1", "data/ibk_store_n3000_1.csv");
-    loadGridCsv("store2", "data/ibk_store_n3000_2.csv");
-    loadGridCsv("store3", "data/ibk_store_n3000_3.csv");
-    loadGridCsv("store4", "data/ibk_store_n3000_4.csv");
+    loadGridCsv("sample", "teddy/sample.csv");
+    loadGridCsv("contract", "teddy/ibk_contract_n10000.csv");
+    loadGridCsv("product", "teddy/ibk_product_n5000.csv");
+    loadGridCsv("store", "teddy/ibk_store_n10000.csv");
+    loadGridCsv("store1", "teddy/ibk_store_n3000_1.csv");
+    loadGridCsv("store2", "teddy/ibk_store_n3000_2.csv");
+    loadGridCsv("store3", "teddy/ibk_store_n3000_3.csv");
+    loadGridCsv("store4", "teddy/ibk_store_n3000_4.csv");
   }
 
   @Test

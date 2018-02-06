@@ -71,7 +71,7 @@ public class SetTest {
 
   @BeforeClass
   public static void setUp() throws Exception {
-    loadGridCsv("null_contained", "metatron_dataset/small/null_contained.csv");
+    loadGridCsv("null_contained", "teddy/null_contained.csv");
   }
 
   private DataFrame newNullContainedDataFrame() throws IOException, TeddyException {

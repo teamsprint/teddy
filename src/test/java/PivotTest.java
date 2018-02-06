@@ -72,7 +72,7 @@ public class PivotTest {
 
   @BeforeClass
   public static void setUp() throws Exception {
-    loadGridCsv("multi", "dataprep/pivot_test_multiple_column.csv");
+    loadGridCsv("multi", "teddy/pivot_test_multiple_column.csv");
   }
 
   private DataFrame newMultiDataFrame() throws IOException, TeddyException {
